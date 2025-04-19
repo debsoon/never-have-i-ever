@@ -2,11 +2,11 @@
   "frame": {
     "version": "1",
     "name": "Never Have I Ever",
-    "homeUrl": "https://never-have-i-ever-4gun3wzyu-debbies-projects-99485154.vercel.app",
-    "iconUrl": "https://never-have-i-ever-4gun3wzyu-debbies-projects-99485154.vercel.app/images/smallsolocup.png",
-    "imageUrl": "https://never-have-i-ever-4gun3wzyu-debbies-projects-99485154.vercel.app/images/background.png",
+    "homeUrl": "https://debbie-does.vercel.app",
+    "iconUrl": "https://debbie-does.vercel.app/images/smallsolocup.png",
+    "imageUrl": "https://debbie-does.vercel.app/images/background.png",
     "buttonTitle": "Launch Never Have I Ever",
-    "splashImageUrl": "https://never-have-i-ever-4gun3wzyu-debbies-projects-99485154.vercel.app/images/background.png",
+    "splashImageUrl": "https://debbie-does.vercel.app/images/background.png",
     "splashBackgroundColor": "#B02A15"
   }
 } 
