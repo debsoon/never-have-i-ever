@@ -5,7 +5,7 @@ import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount } from "wagmi"
 import { encodeFunctionData } from 'viem'
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, Suspense } from 'react'
 import { 
   Transaction, 
   TransactionButton, 
@@ -21,10 +21,10 @@ import {
 } from "@coinbase/onchainkit/transaction"
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
-import { RedisHelper } from '@/app/lib/redis'
+import { redisHelper } from '@/app/lib/redis'
 import { CONTRACT_ADDRESS } from '@/app/constants'
 
-export default function ConfirmPromptPage() {
+function ConfirmPromptContent() {
   const searchParams = useSearchParams()
   const prompt = searchParams.get('prompt')
   const { address } = useAccount()
@@ -58,7 +58,7 @@ export default function ConfirmPromptPage() {
         value: BigInt(0),
       },
     ]
-  }, [address, prompt])
+  }, [address, prompt, CONTRACT_ABI])
 
   const handleSuccess = useCallback(async (response: TransactionResponse) => {
     const transactionHash = response.transactionReceipts[0].transactionHash
@@ -85,7 +85,7 @@ export default function ConfirmPromptPage() {
         expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
       }
 
-      await RedisHelper.createPrompt(promptData)
+      await redisHelper.createPrompt(promptData)
 
       await sendNotification({
         title: "Prompt Submitted!",
@@ -158,5 +158,13 @@ export default function ConfirmPromptPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function ConfirmPromptPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConfirmPromptContent />
+    </Suspense>
   )
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { RedisHelper } from '@/app/lib/redis'
+import { redisHelper } from '@/app/lib/redis'
 
 export async function POST(request: Request) {
   try {
@@ -13,17 +13,17 @@ export async function POST(request: Request) {
     } = body
 
     // Record the confession
-    await RedisHelper.addConfession({
+    await redisHelper.addConfession({
       promptId,
       userFid,
-      hasConfessed,
+      type: hasConfessed ? 'have' : 'never',
       imageUrl,
-      txHash,
+      transactionHash: txHash,
       timestamp: Date.now()
     })
 
     // Record the payment
-    await RedisHelper.recordPayment({
+    await redisHelper.recordPayment({
       promptId,
       userFid,
       hasPaid: true,

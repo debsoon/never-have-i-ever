@@ -16,6 +16,7 @@ import { parseUnits } from 'viem'
 import { StateDebugger } from '@/app/components/StateDebugger'
 import { sdk } from '@farcaster/frame-sdk'
 import confetti from 'canvas-confetti'
+import { LoadingState } from '@/app/components/LoadingState'
 
 interface RedisPrompt {
   id: string
@@ -213,19 +214,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
           isExpired={isExpired}
           setIsExpired={setIsExpired}
         />
-        <div className="min-h-screen bg-[#B02A15] relative">
-          <Image
-            src="/images/background.png"
-            alt="Background"
-            fill
-            className="object-cover"
-          />
-          <div className="min-h-screen border-[24px] border-[#B02A15] relative">
-            <div className="flex items-center justify-center h-full">
-              <p className={cn("text-xl text-[#EAC898]", txcPearl.className)}>Loading confessions...</p>
-            </div>
-          </div>
-        </div>
+        <LoadingState message="Loading confessions..." />
       </>
     )
   }

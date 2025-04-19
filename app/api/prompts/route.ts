@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
-import { RedisHelper } from '@/app/lib/redis'
+import { redisHelper } from '@/app/lib/redis'
 import { getFarcasterUserByFid } from '@/app/lib/farcaster'
 
 export async function GET() {
   try {
     // Get recent prompt IDs
-    const promptIds = await RedisHelper.getRecentPrompts()
+    const promptIds = await redisHelper.getRecentPrompts()
     
     // Fetch full prompt data for each ID
     const prompts = await Promise.all(
       promptIds.map(async (id) => {
-        const prompt = await RedisHelper.getPrompt(id)
+        const prompt = await redisHelper.getPrompt(id)
         if (!prompt) return null
 
         return {

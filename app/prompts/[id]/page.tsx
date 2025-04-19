@@ -10,6 +10,7 @@ import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
 import { fetchFarcasterUser, fetchFarcasterUsers } from '@/app/utils/farcaster'
 import { FarcasterUser } from '@/app/types'
+import { LoadingState } from '@/app/components/LoadingState'
 
 interface RedisPrompt {
   id: string
@@ -114,21 +115,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
   }, [prompt])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#B02A15] relative">
-        <Image
-          src="/images/background.png"
-          alt="Background"
-          fill
-          className="object-cover"
-        />
-        <div className="min-h-screen border-[24px] border-[#B02A15] relative">
-          <div className="flex items-center justify-center h-full">
-            <p className={cn("text-xl text-[#EAC898]", txcPearl.className)}>Loading prompt...</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingState message="Loading prompt..." />
   }
 
   if (!prompt) {

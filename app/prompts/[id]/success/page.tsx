@@ -10,6 +10,7 @@ import { Transaction } from '@/app/components/Transaction'
 import { USDC_CONTRACT, TREASURY_ADDRESS } from '@/app/constants'
 import { parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
+import { LoadingState } from '@/app/components/LoadingState'
 
 async function loadPrompt(id: string): Promise<StoredPrompt | null> {
   try {
@@ -75,21 +76,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
   }, [prompt?.expiresAt])
 
   if (isLoading || !prompt) {
-    return (
-      <div className="min-h-screen bg-[#B02A15] relative">
-        <Image
-          src="/images/background.png"
-          alt="Background"
-          fill
-          className="object-cover"
-        />
-        <div className="min-h-screen border-[24px] border-[#B02A15] relative">
-          <div className="flex items-center justify-center h-full">
-            <p className={cn("text-xl text-[#EAC898]", txcPearl.className)}>Loading...</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingState message="Loading..." />
   }
 
   return (

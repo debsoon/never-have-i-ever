@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { RedisHelper } from '@/app/lib/redis'
+import { redisHelper } from '@/app/lib/redis'
 import { getFarcasterUserByFid } from '@/app/lib/farcaster'
 
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
     console.log('Fetching prompt with ID:', params.id);
     
     // Get the prompt
-    const prompt = await RedisHelper.getPrompt(params.id)
+    const prompt = await redisHelper.getPrompt(params.id)
     if (!prompt) {
       console.log('Prompt not found:', params.id);
       return new NextResponse(null, { status: 404 })
@@ -29,7 +29,7 @@ export async function GET(
 
     // Get confessions
     console.log('Fetching confessions for prompt:', params.id);
-    const confessions = await RedisHelper.getPromptConfessions(params.id)
+    const confessions = await redisHelper.getPromptConfessions(params.id)
     
     // Get user details for each confession
     const confessionsWithUsers = await Promise.all(
