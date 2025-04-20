@@ -26,8 +26,8 @@ function ConfirmPromptContent() {
       name: 'createPrompt',
       type: 'function',
       stateMutability: 'nonpayable',
-      inputs: [{ name: 'content', type: 'string' }],
-      outputs: [],
+      inputs: [{ name: 'durationInSeconds', type: 'uint256' }],
+      outputs: [{ name: '', type: 'uint256' }],
     },
   ] as const
 
@@ -37,7 +37,7 @@ function ConfirmPromptContent() {
     return encodeFunctionData({
       abi: CONTRACT_ABI,
       functionName: 'createPrompt',
-      args: [prompt],
+      args: [BigInt(86400)],
     })
   }, [prompt, CONTRACT_ABI])
 
