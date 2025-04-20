@@ -3,22 +3,9 @@
 import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
-import { useAccount } from "wagmi"
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi"
 import { encodeFunctionData } from 'viem'
-import { useMemo, useCallback, Suspense } from 'react'
-import { 
-  Transaction, 
-  TransactionButton, 
-  TransactionStatus, 
-  TransactionStatusAction, 
-  TransactionStatusLabel,
-  TransactionToast,
-  TransactionToastIcon,
-  TransactionToastLabel,
-  TransactionToastAction,
-  type TransactionError,
-  type TransactionResponse 
-} from "@coinbase/onchainkit/transaction"
+import { useMemo, useCallback, Suspense, useEffect } from 'react'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
@@ -42,70 +29,82 @@ function ConfirmPromptContent() {
     },
   ] as const
 
-  const calls = useMemo(() => {
-    if (!address || !prompt) return []
+  const data = useMemo(() => {
+    if (!prompt) return undefined
 
-    const data = encodeFunctionData({
+    return encodeFunctionData({
       abi: CONTRACT_ABI,
       functionName: 'createPrompt',
       args: [prompt],
     })
+  }, [prompt, CONTRACT_ABI])
 
-    return [
-      {
+  const { 
+    data: hash,
+    error,
+    isPending,
+    sendTransaction 
+  } = useSendTransaction()
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  // Automatically submit transaction when component mounts
+  useEffect(() => {
+    if (address && data) {
+      sendTransaction({
         to: CONTRACT_ADDRESS,
         data,
         value: BigInt(0),
-      },
-    ]
-  }, [address, prompt, CONTRACT_ABI])
-
-  const handleSuccess = useCallback(async (response: TransactionResponse) => {
-    const transactionHash = response.transactionReceipts[0].transactionHash
-    console.log(`Prompt submitted! Tx hash: ${transactionHash}`)
-
-    try {
-      if (!prompt) {
-        throw new Error('No prompt content found')
-      }
-
-      // Get user's Farcaster ID from their wallet address
-      const userResponse = await fetch(`/api/users/wallet/${address}`)
-      if (!userResponse.ok) {
-        throw new Error('Failed to get user FID')
-      }
-      const { fid } = await userResponse.json()
-
-      // Create prompt in Redis
-      const promptData = {
-        id: transactionHash,
-        content: prompt,
-        authorFid: fid,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-      }
-
-      await redisHelper.createPrompt(promptData)
-
-      await sendNotification({
-        title: "Prompt Submitted!",
-        body: `Your \"Never Have I Ever\" prompt has been posted.`,
-      })
-
-      // Redirect to the prompt page
-      router.push(`/prompts/${transactionHash}`)
-    } catch (error) {
-      console.error('Error storing prompt:', error)
-      await sendNotification({
-        title: "Error",
-        body: "Failed to store prompt. Please try again.",
       })
     }
-  }, [sendNotification, prompt, address, router])
+  }, [address, data, sendTransaction])
 
-  const handleError = useCallback((error: TransactionError) => {
-    console.error("Prompt submission failed:", error)
-  }, [])
+  // Handle successful transaction
+  useEffect(() => {
+    async function handleSuccess() {
+      if (!hash || !prompt || !address) return
+
+      try {
+        // Get user's Farcaster ID from their wallet address
+        const userResponse = await fetch(`/api/users/wallet/${address}`)
+        if (!userResponse.ok) {
+          throw new Error('Failed to get user FID')
+        }
+        const { fid } = await userResponse.json()
+
+        // Create prompt in Redis
+        const promptData = {
+          id: hash,
+          content: prompt,
+          authorFid: fid,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        }
+
+        await redisHelper.createPrompt(promptData)
+
+        await sendNotification({
+          title: "Prompt Submitted!",
+          body: `Your \"Never Have I Ever\" prompt has been posted.`,
+        })
+
+        // Redirect to the prompt page
+        router.push(`/prompts/${hash}`)
+      } catch (error) {
+        console.error('Error storing prompt:', error)
+        await sendNotification({
+          title: "Error",
+          body: "Failed to store prompt. Please try again.",
+        })
+      }
+    }
+
+    if (isConfirmed) {
+      handleSuccess()
+    }
+  }, [isConfirmed, hash, prompt, address, router, sendNotification])
 
   return (
     <main 
@@ -134,22 +133,29 @@ function ConfirmPromptContent() {
           </div>
 
           {address ? (
-            <Transaction calls={calls} onSuccess={handleSuccess} onError={handleError}>
-              <div className="flex flex-col gap-4">
-                <TransactionButton className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full
-                            text-3xl hover:bg-[#8f2211] transition-colors
-                            border-2 border-[#B02A15] uppercase tracking-wider" />
-                <TransactionStatus>
-                  <TransactionStatusAction />
-                  <TransactionStatusLabel />
-                </TransactionStatus>
-                <TransactionToast>
-                  <TransactionToastIcon />
-                  <TransactionToastLabel />
-                  <TransactionToastAction />
-                </TransactionToast>
-              </div>
-            </Transaction>
+            <div className="flex flex-col gap-4 w-full">
+              <button
+                disabled={isPending || isConfirming}
+                className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full
+                          text-3xl hover:bg-[#8f2211] transition-colors
+                          border-2 border-[#B02A15] uppercase tracking-wider
+                          disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPending ? 'Check your wallet...' : isConfirming ? 'Confirming...' : 'Submit Prompt'}
+              </button>
+
+              {hash && (
+                <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
+                  Transaction submitted! Waiting for confirmation...
+                </p>
+              )}
+
+              {error && (
+                <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
+                  Error: {error.message}
+                </p>
+              )}
+            </div>
           ) : (
             <p className="text-[#B02A15] text-sm text-center">
               Connect your wallet to submit prompt
