@@ -4,12 +4,12 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData } from 'viem'
+import { encodeFunctionData, parseUnits } from 'viem'
 import { useMemo, useCallback, Suspense, useEffect, useState } from 'react'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
-import { CONTRACT_ADDRESS } from '@/app/constants'
+import { CONTRACT_ADDRESS, USDC_CONTRACT } from '@/app/constants'
 import { base } from 'wagmi/chains'
 
 function ConfirmPromptContent() {
@@ -21,8 +21,22 @@ function ConfirmPromptContent() {
   const router = useRouter()
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState<Error | null>(null)
+  const [stage, setStage] = useState<'idle' | 'approving' | 'creating' | 'done'>('idle')
 
   const isCorrectChain = chainId === base.id
+
+  const USDC_ABI = [
+    {
+      name: 'approve',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'spender', type: 'address' },
+        { name: 'amount', type: 'uint256' }
+      ],
+      outputs: [{ name: '', type: 'bool' }]
+    }
+  ] as const
 
   const CONTRACT_ABI = [
     {
@@ -31,10 +45,18 @@ function ConfirmPromptContent() {
       stateMutability: 'nonpayable',
       inputs: [{ name: 'durationInSeconds', type: 'uint256' }],
       outputs: [{ name: '', type: 'uint256' }],
-    },
+    }
   ] as const
 
-  const data = useMemo(() => {
+  const approveData = useMemo(() => {
+    return encodeFunctionData({
+      abi: USDC_ABI,
+      functionName: 'approve',
+      args: [CONTRACT_ADDRESS, parseUnits('1', 6)],
+    })
+  }, [])
+
+  const createPromptData = useMemo(() => {
     return encodeFunctionData({
       abi: CONTRACT_ABI,
       functionName: 'createPromptWithPayment',
@@ -54,24 +76,49 @@ function ConfirmPromptContent() {
 
   const handleSubmit = useCallback(async () => {
     if (!address || !isCorrectChain) return
-
     setError(null)
+    setStage('approving')
 
     try {
-      const tx = await sendTransaction({
-        to: CONTRACT_ADDRESS,
-        data,
+      await sendTransaction({
+        to: USDC_CONTRACT,
+        data: approveData,
         value: BigInt(0),
       })
       setTxHash(hash || null)
     } catch (err) {
       setError(err as Error)
+      setStage('idle')
     }
-  }, [address, isCorrectChain, sendTransaction, data, hash])
+  }, [address, isCorrectChain, approveData, sendTransaction, hash])
+
+  useEffect(() => {
+    const runCreatePrompt = async () => {
+      if (isConfirmed && stage === 'approving') {
+        setStage('creating')
+
+        try {
+          await sendTransaction({
+            to: CONTRACT_ADDRESS,
+            data: createPromptData,
+            value: BigInt(0),
+          })
+          setTxHash(hash || null)
+        } catch (err) {
+          setError(err as Error)
+          setStage('idle')
+        }
+      }
+    }
+
+    runCreatePrompt()
+  }, [isConfirmed, stage, createPromptData, sendTransaction, hash])
 
   useEffect(() => {
     const storePrompt = async () => {
-      if (isConfirmed && prompt && address && txHash) {
+      if (stage === 'creating' && isConfirmed && prompt && address && txHash) {
+        setStage('done')
+
         try {
           const userRes = await fetch(`/api/users/wallet/${address}`)
           const { fid } = await userRes.json()
@@ -96,12 +143,13 @@ function ConfirmPromptContent() {
             title: 'Error',
             body: 'Failed to store prompt. Please try again.',
           })
+          setStage('idle')
         }
       }
     }
 
     storePrompt()
-  }, [isConfirmed, prompt, address, txHash, router, sendNotification])
+  }, [stage, isConfirmed, prompt, address, txHash, router, sendNotification])
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-[32px] border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
@@ -125,11 +173,12 @@ function ConfirmPromptContent() {
             <div className="flex flex-col gap-4 w-full">
               <button
                 onClick={handleSubmit}
-                disabled={!isCorrectChain || isPending || isConfirming}
+                disabled={!isCorrectChain || isPending || isConfirming || stage !== 'idle'}
                 className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPending ? 'Check your wallet...' :
-                  isConfirming ? 'Submitting...' :
+                {stage === 'approving' ? 'Approving...' :
+                  stage === 'creating' ? 'Submitting Prompt...' :
+                  isPending ? 'Check your wallet...' :
                   'Submit Prompt ($1)'}
               </button>
 
