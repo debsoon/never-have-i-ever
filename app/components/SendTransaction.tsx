@@ -1,10 +1,25 @@
 'use client'
 
-import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
 import { neuzeitGrotesk } from '@/utils/fonts'
 import { useEffect } from 'react'
+
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC
+
+const USDC_ABI = [
+  {
+    name: 'approve',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  }
+] as const
 
 const CONTRACT_ABI = [
   {
@@ -26,6 +41,8 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   
+  const { writeContractAsync: approveUSDC } = useWriteContract()
+  
   const {
     data: hash,
     error,
@@ -45,6 +62,14 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
     }
 
     try {
+      // Approve a large amount (100 USDC) to avoid frequent approvals
+      await approveUSDC({
+        address: USDC_ADDRESS,
+        abi: USDC_ABI,
+        functionName: 'approve',
+        args: [contractAddress, BigInt(100_000_000)] // 100 USDC
+      })
+
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'createPrompt',
