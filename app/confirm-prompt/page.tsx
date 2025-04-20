@@ -4,12 +4,12 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData } from 'viem'
-import { useMemo, useCallback, Suspense, useEffect } from 'react'
+import { encodeFunctionData, parseUnits } from 'viem'
+import { useMemo, useCallback, Suspense, useEffect, useState } from 'react'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
-import { CONTRACT_ADDRESS } from '@/app/constants'
+import { CONTRACT_ADDRESS, USDC_CONTRACT } from '@/app/constants'
 import { base } from 'wagmi/chains'
 
 function ConfirmPromptContent() {
@@ -19,8 +19,25 @@ function ConfirmPromptContent() {
   const chainId = useChainId()
   const sendNotification = useNotification()
   const router = useRouter()
+  const [stage, setStage] = useState<'idle' | 'approving' | 'creating' | 'confirmed'>('idle')
+  const [txHash, setTxHash] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
-  // NeverHaveIEver contract details
+  const isCorrectChain = chainId === base.id
+
+  const USDC_ABI = [
+    {
+      name: 'approve',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'spender', type: 'address' },
+        { name: 'amount', type: 'uint256' }
+      ],
+      outputs: [{ name: '', type: 'bool' }]
+    }
+  ] as const
+
   const CONTRACT_ABI = [
     {
       name: 'createPrompt',
@@ -31,113 +48,119 @@ function ConfirmPromptContent() {
     },
   ] as const
 
-  const data = useMemo(() => {
-    if (!prompt) return undefined
+  const approveData = useMemo(() => {
+    return encodeFunctionData({
+      abi: USDC_ABI,
+      functionName: 'approve',
+      args: [CONTRACT_ADDRESS, parseUnits("1", 6)]
+    })
+  }, [])
 
+  const createPromptData = useMemo(() => {
+    if (!prompt) return undefined
     return encodeFunctionData({
       abi: CONTRACT_ABI,
       functionName: 'createPrompt',
       args: [BigInt(86400)],
     })
-  }, [prompt, CONTRACT_ABI])
+  }, [prompt])
 
-  const { 
+  const {
     data: hash,
-    error,
+    sendTransaction,
     isPending,
-    sendTransaction 
+    reset: resetTransaction
   } = useSendTransaction()
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
+    hash: txHash as `0x${string}` | undefined,
   })
 
-  // Check if we're on the correct chain
-  const isCorrectChain = chainId === base.id
-
-  // Handle transaction submission
-  const handleSubmit = useCallback(() => {
-    if (!address || !data || !isCorrectChain) return
+  const handleSubmit = useCallback(async () => {
+    if (!address || !isCorrectChain || !createPromptData) return
+    setError(null)
+    setStage('approving')
 
     try {
-      sendTransaction({
-        to: CONTRACT_ADDRESS,
-        data,
+      const approveTx = await sendTransaction({
+        to: USDC_CONTRACT,
+        data: approveData,
         value: BigInt(0),
       })
+      setTxHash(hash || null)
     } catch (err) {
-      console.error('Failed to send transaction:', err)
+      setError(err as Error)
+      setStage('idle')
     }
-  }, [address, data, sendTransaction, isCorrectChain])
+  }, [address, isCorrectChain, sendTransaction, approveData, createPromptData, hash])
 
-  // Handle successful transaction
   useEffect(() => {
-    async function handleSuccess() {
-      if (!hash || !prompt || !address) return
+    const runCreatePrompt = async () => {
+      if (isConfirmed && stage === 'approving') {
+        setStage('creating')
 
-      try {
-        // Get user's Farcaster ID from their wallet address
-        const userResponse = await fetch(`/api/users/wallet/${address}`)
-        if (!userResponse.ok) {
-          throw new Error('Failed to get user FID')
+        try {
+          const promptTx = await sendTransaction({
+            to: CONTRACT_ADDRESS,
+            data: createPromptData,
+            value: BigInt(0),
+          })
+          setTxHash(hash || null)
+        } catch (err) {
+          setError(err as Error)
+          setStage('idle')
         }
-        const { fid } = await userResponse.json()
-
-        // Create prompt in Redis
-        const promptData = {
-          id: hash,
-          content: prompt,
-          authorFid: fid,
-          createdAt: Date.now(),
-          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-        }
-
-        await redisHelper.createPrompt(promptData)
-
-        await sendNotification({
-          title: "Prompt Submitted!",
-          body: `Your \"Never Have I Ever\" prompt has been posted.`,
-        })
-
-        // Redirect to the prompt page
-        router.push(`/prompts/${hash}`)
-      } catch (error) {
-        console.error('Error storing prompt:', error)
-        await sendNotification({
-          title: "Error",
-          body: "Failed to store prompt. Please try again.",
-        })
       }
     }
 
-    if (isConfirmed) {
-      handleSuccess()
-    }
-  }, [isConfirmed, hash, prompt, address, router, sendNotification])
+    runCreatePrompt()
+  }, [isConfirmed, stage, createPromptData, sendTransaction, hash])
 
-  // Automatically submit when ready
   useEffect(() => {
-    if (address && data && isCorrectChain && !isPending && !isConfirming && !hash) {
-      handleSubmit()
+    const storePrompt = async () => {
+      if (stage === 'creating' && isConfirmed && prompt && address && txHash) {
+        setStage('confirmed')
+
+        try {
+          const userRes = await fetch(`/api/users/wallet/${address}`)
+          const { fid } = await userRes.json()
+
+          await redisHelper.createPrompt({
+            id: txHash,
+            content: prompt,
+            authorFid: fid,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 86400 * 1000,
+          })
+
+          await sendNotification({
+            title: 'Prompt Submitted!',
+            body: `Your "Never Have I Ever" prompt has been posted.`,
+          })
+
+          router.push(`/prompts/${txHash}`)
+        } catch (err) {
+          console.error(err)
+          await sendNotification({
+            title: 'Error',
+            body: 'Failed to store prompt. Please try again.',
+          })
+          setStage('idle')
+        }
+      }
     }
-  }, [address, data, isCorrectChain, isPending, isConfirming, hash, handleSubmit])
+
+    storePrompt()
+  }, [stage, isConfirmed, prompt, address, txHash, router, sendNotification])
 
   return (
-    <main 
-      className={`flex min-h-screen flex-col items-center justify-start pt-16 
-                  bg-cover bg-center bg-no-repeat ${txcPearl.className}
-                  border-[32px] border-[#B02A15]`}
-      style={{ backgroundImage: 'url("/images/background.png")' }}
-    >
+    <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-[32px] border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-8">
         <div className="w-full p-2 rounded-lg">
           <h2 className={`text-[#B02A15] text-xl mb-2 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
-          <div className="w-full h-[1px] bg-[#B02A15] mb-4"></div>
-
+          <div className="w-full h-[1px] bg-[#B02A15] mb-4" />
           <div className="text-[#B02A15] text-7xl text-center mb-4">NEVER HAVE<br />I EVER...</div>
-
           <div className={`text-[#B02A15] text-4xl text-center mb-8 ${neuzeitGrotesk.className}`}>{prompt}</div>
-
           <div className="bg-[#FFE5E5] p-4 rounded-lg mb-8">
             <div className="flex items-start gap-2 text-[#B02A15]">
               <Image src="/images/icons/triangle_warning.png" alt="Warning" width={20} height={20} />
@@ -152,33 +175,24 @@ function ConfirmPromptContent() {
             <div className="flex flex-col gap-4 w-full">
               <button
                 onClick={handleSubmit}
-                disabled={!isCorrectChain || isPending || isConfirming}
-                className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full
-                          text-3xl hover:bg-[#8f2211] transition-colors
-                          border-2 border-[#B02A15] uppercase tracking-wider
-                          disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!isCorrectChain || isPending || isConfirming || stage !== 'idle'}
+                className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {!isCorrectChain ? 'Wrong Network' :
+                {stage === 'approving' ? 'Approving...' :
+                  stage === 'creating' ? 'Submitting Prompt...' :
                   isPending ? 'Check your wallet...' :
-                  isConfirming ? 'Confirming...' :
                   'Submit Prompt'}
               </button>
 
-              {!isCorrectChain && (
-                <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-                  Please switch to Base network to continue
-                </p>
-              )}
-
               {error && (
                 <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-                  {error.message.includes('rejected') ? 
+                  {error.message.includes('rejected') ?
                     'Transaction was cancelled. Try again?' :
                     `Error: ${error.message}`}
                 </p>
               )}
 
-              {hash && !error && (
+              {txHash && !error && (
                 <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
                   Transaction submitted! Waiting for confirmation...
                 </p>
