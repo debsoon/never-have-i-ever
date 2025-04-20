@@ -3,18 +3,20 @@
 import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi"
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
 import { encodeFunctionData } from 'viem'
 import { useMemo, useCallback, Suspense, useEffect } from 'react'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
 import { CONTRACT_ADDRESS } from '@/app/constants'
+import { base } from 'wagmi/chains'
 
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
   const prompt = searchParams.get('prompt')
   const { address } = useAccount()
+  const chainId = useChainId()
   const sendNotification = useNotification()
   const router = useRouter()
 
@@ -50,16 +52,23 @@ function ConfirmPromptContent() {
     hash,
   })
 
-  // Automatically submit transaction when component mounts
-  useEffect(() => {
-    if (address && data) {
+  // Check if we're on the correct chain
+  const isCorrectChain = chainId === base.id
+
+  // Handle transaction submission
+  const handleSubmit = useCallback(() => {
+    if (!address || !data || !isCorrectChain) return
+
+    try {
       sendTransaction({
         to: CONTRACT_ADDRESS,
         data,
         value: BigInt(0),
       })
+    } catch (err) {
+      console.error('Failed to send transaction:', err)
     }
-  }, [address, data, sendTransaction])
+  }, [address, data, sendTransaction, isCorrectChain])
 
   // Handle successful transaction
   useEffect(() => {
@@ -106,6 +115,13 @@ function ConfirmPromptContent() {
     }
   }, [isConfirmed, hash, prompt, address, router, sendNotification])
 
+  // Automatically submit when ready
+  useEffect(() => {
+    if (address && data && isCorrectChain && !isPending && !isConfirming && !hash) {
+      handleSubmit()
+    }
+  }, [address, data, isCorrectChain, isPending, isConfirming, hash, handleSubmit])
+
   return (
     <main 
       className={`flex min-h-screen flex-col items-center justify-start pt-16 
@@ -135,24 +151,36 @@ function ConfirmPromptContent() {
           {address ? (
             <div className="flex flex-col gap-4 w-full">
               <button
-                disabled={isPending || isConfirming}
+                onClick={handleSubmit}
+                disabled={!isCorrectChain || isPending || isConfirming}
                 className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full
                           text-3xl hover:bg-[#8f2211] transition-colors
                           border-2 border-[#B02A15] uppercase tracking-wider
                           disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPending ? 'Check your wallet...' : isConfirming ? 'Confirming...' : 'Submit Prompt'}
+                {!isCorrectChain ? 'Wrong Network' :
+                  isPending ? 'Check your wallet...' :
+                  isConfirming ? 'Confirming...' :
+                  'Submit Prompt'}
               </button>
 
-              {hash && (
+              {!isCorrectChain && (
                 <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-                  Transaction submitted! Waiting for confirmation...
+                  Please switch to Base network to continue
                 </p>
               )}
 
               {error && (
                 <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-                  Error: {error.message}
+                  {error.message.includes('rejected') ? 
+                    'Transaction was cancelled. Try again?' :
+                    `Error: ${error.message}`}
+                </p>
+              )}
+
+              {hash && !error && (
+                <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
+                  Transaction submitted! Waiting for confirmation...
                 </p>
               )}
             </div>
