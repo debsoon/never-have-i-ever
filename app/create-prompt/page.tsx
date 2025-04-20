@@ -27,7 +27,7 @@ export default function CreatePromptPage() {
     <main 
       className={`flex min-h-screen flex-col items-center justify-center 
                   bg-cover bg-center bg-no-repeat ${txcPearl.className}
-                  border-[32px] border-[#B02A15]`}
+                  border-viewport border-[#B02A15]`}
       style={{ backgroundImage: 'url("/images/background.png")' }}
     >
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-8">

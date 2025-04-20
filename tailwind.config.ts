@@ -26,6 +26,9 @@ const config: Config = {
           "100%": { transform: "rotate(360deg)" },
         },
       },
+      borderWidth: {
+        'viewport': '12px',
+      },
     },
   },
   plugins: [],

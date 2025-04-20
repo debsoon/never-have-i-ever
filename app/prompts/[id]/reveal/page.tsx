@@ -237,7 +237,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
             fill
             className="object-cover"
           />
-          <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+          <div className="min-h-screen border-viewport border-[#B02A15] relative">
             <div className="flex flex-col items-center justify-center h-full">
               <h1 className={cn("text-xl text-[#EAC898] mb-4", txcPearl.className)}>Prompt not found</h1>
               <Link 
@@ -278,7 +278,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
             fill
             className="object-cover"
           />
-          <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+          <div className="min-h-screen border-viewport border-[#B02A15] relative">
             <div className="max-w-[600px] mx-auto px-8 pt-12 text-center">
               {isExpired ? (
                 <>
@@ -476,7 +476,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
               fill
               className="object-cover"
             />
-            <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+            <div className="min-h-screen border-viewport border-[#B02A15] relative">
               <div className="max-w-[600px] mx-auto px-8 pt-12 text-center">
                 <h1 className={cn("text-[#B02A15] text-4xl mb-1", txcPearl.className)}>
                   TIME'S UP!
@@ -559,7 +559,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
             fill
             className="object-cover"
           />
-          <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+          <div className="min-h-screen border-viewport border-[#B02A15] relative">
             <div className="max-w-[600px] mx-auto px-8 pt-12 text-center">
               <h1 className={cn("text-[#B02A15] text-4xl mb-1", txcPearl.className)}>
                 TIME'S UP!
@@ -714,7 +714,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
           fill
           className="object-cover"
         />
-        <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+        <div className="min-h-screen border-viewport border-[#B02A15] relative">
           <div className="max-w-[600px] mx-auto p-4 text-center">
             <h1 className={cn("text-4xl text-[#EAC898] mb-4", txcPearl.className)}>
               {prompt.content}

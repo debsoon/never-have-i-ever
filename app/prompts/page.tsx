@@ -257,7 +257,7 @@ export default function PromptsPage() {
         fill
         className="object-cover"
       />
-      <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+      <div className="min-h-screen border-viewport border-[#B02A15] relative">
         <div className="max-w-2xl mx-auto p-4">
           <div className="p-8">
             <h1 className={cn("text-7xl text-center mb-8 text-[#B02A15]", txcPearl.className)}>

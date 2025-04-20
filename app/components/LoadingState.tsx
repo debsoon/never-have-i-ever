@@ -17,7 +17,7 @@ export function LoadingState({ message = 'Loading...' }: LoadingStateProps) {
         fill
         className="object-cover"
       />
-      <div className="min-h-screen border-[24px] border-[#B02A15] relative flex items-center justify-center">
+      <div className="min-h-screen border-viewport border-[#B02A15] relative flex items-center justify-center">
         <div className="flex flex-col items-center gap-8">
           <div className="relative w-[200px] h-[200px] animate-spin-slow">
             <Image

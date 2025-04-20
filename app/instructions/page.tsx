@@ -54,14 +54,14 @@ export default function InstructionsPage() {
           <div className="flex flex-col items-center gap-4 mt-8">
             <Link href="/create-prompt">
               <button className="bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full
-                               text-3xl hover:bg-[#8f2211] transition-colors
+                               text-2xl whitespace-nowrap hover:bg-[#8f2211] transition-colors
                                border-2 border-[#B02A15] uppercase tracking-wider z-10">
                 CREATE A PROMPT
               </button>
             </Link>
             <Link href="/prompts">
               <button className="bg-transparent text-[#B02A15] px-6 py-2 rounded-full
-                               text-3xl hover:bg-[#B02A15] hover:text-[#E8D0B3] transition-colors
+                               text-2xl whitespace-nowrap hover:bg-[#B02A15] hover:text-[#E8D0B3] transition-colors
                                border-[3px] border-[#B02A15] uppercase tracking-wider z-10">
                 CONFESS TO A PROMPT
               </button>
