@@ -1,6 +1,6 @@
 import { http, createConfig } from 'wagmi'
 import { base } from 'wagmi/chains'
-import { farcasterFrame } from '@farcaster/frame-wagmi-connector'
+import { farcasterFrame as miniAppConnector } from '@farcaster/frame-wagmi-connector'
 
 // Configure Base chain with proper RPC URL
 const baseChain = {
@@ -22,6 +22,6 @@ export const config = createConfig({
     [baseChain.id]: http(),
   },
   connectors: [
-    farcasterFrame()
+    miniAppConnector()
   ]
 }) 
