@@ -8,10 +8,10 @@ const baseChain = {
   rpcUrls: {
     ...base.rpcUrls,
     default: {
-      http: ['https://base.g.alchemy.com/v2/']
+      http: ['https://mainnet.base.org']
     },
     public: {
-      http: ['https://base.g.alchemy.com/v2/']
+      http: ['https://mainnet.base.org']
     }
   }
 }
