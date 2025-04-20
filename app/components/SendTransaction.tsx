@@ -1,23 +1,10 @@
 'use client'
 
-import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
 import { neuzeitGrotesk } from '@/utils/fonts'
-import { useEffect, useState } from 'react'
-
-const USDC_ABI = [
-  {
-    name: 'approve',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' }
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-  }
-] as const
+import { useEffect } from 'react'
 
 const CONTRACT_ABI = [
   {
@@ -38,7 +25,6 @@ interface SendTransactionProps {
 export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true }: SendTransactionProps) {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
-  const [isApproving, setIsApproving] = useState(false)
   
   const {
     data: hash,
@@ -47,30 +33,9 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
     sendTransaction
   } = useSendTransaction()
 
-  const { writeContract: approveUSDC } = useWriteContract()
-
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   })
-
-  // Function to approve USDC spending
-  async function approveUSDCSpending() {
-    if (!address) return
-
-    try {
-      setIsApproving(true)
-      await approveUSDC({
-        address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC address
-        abi: USDC_ABI,
-        functionName: 'approve',
-        args: [contractAddress, BigInt(1000000)] // Approve 1 USDC (6 decimals)
-      })
-    } catch (err) {
-      console.error('Approval error:', err)
-    } finally {
-      setIsApproving(false)
-    }
-  }
 
   // Function to prepare and send transaction
   async function prepareAndSendTransaction() {
@@ -80,9 +45,6 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
     }
 
     try {
-      // First approve USDC spending
-      await approveUSDCSpending()
-
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'createPrompt',
@@ -122,12 +84,11 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4 w-full">
       <button 
-        disabled={isPending || isConfirming || isApproving}
+        disabled={isPending || isConfirming}
         type="submit"
         className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider"
       >
-        {isApproving ? 'Approving USDC...' :
-         isPending ? 'Check your wallet...' :
+        {isPending ? 'Check your wallet...' :
          isConfirming ? 'Creating prompt...' :
          !isConnected ? 'CONNECT WALLET' :
          'PAY $1 TO SUBMIT'}
