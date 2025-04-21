@@ -5,89 +5,42 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
-import { StoredPrompt } from '@/app/lib/redis'
+import { useAccount } from 'wagmi'
+import { LoadingState } from '@/app/components/LoadingState'
 import { Transaction } from '@/app/components/Transaction'
 import { USDC_CONTRACT, TREASURY_ADDRESS } from '@/app/constants'
 import { parseUnits } from 'viem'
-import { useAccount } from 'wagmi'
-import { LoadingState } from '@/app/components/LoadingState'
 
-async function loadPrompt(id: string): Promise<StoredPrompt | null> {
-  try {
-    console.log('Success page: Loading prompt:', id)
-    const res = await fetch(`/api/prompts/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-    
-    if (!res.ok) {
-      console.error('Success page: API request failed:', {
-        status: res.status,
-        statusText: res.statusText
-      })
-      if (res.status === 404) {
-        console.log('Success page: Prompt not found')
-        return null
-      }
-      throw new Error(`API request failed: ${res.status} ${res.statusText}`)
-    }
-
-    const data = await res.json()
-    console.log('Success page: Received data:', data)
-    
-    if (!data || typeof data !== 'object') {
-      console.error('Success page: Invalid data received:', data)
-      throw new Error('Invalid data received from API')
-    }
-
-    return {
-      id: data.id,
-      content: data.content,
-      authorFid: data.authorFid,
-      expiresAt: data.expiresAt,
-      createdAt: data.createdAt,
-      totalConfessions: data.totalConfessions || 0
-    }
-  } catch (error) {
-    console.error('Success page: Error loading prompt:', error)
-    throw error // Let the component handle the error
-  }
+interface PromptData {
+  expiresAt: number
+  totalConfessions: number
+  content: string
 }
 
 export default function SuccessPage({ params }: { params: { id: string } }) {
-  const [prompt, setPrompt] = useState<StoredPrompt | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<PromptData | null>(null)
   const [timeRemaining, setTimeRemaining] = useState('')
   const { address } = useAccount()
 
   useEffect(() => {
-    async function fetchPrompt() {
-      try {
-        const data = await loadPrompt(params.id)
-        console.log('Success page: Setting prompt data:', data)
-        setPrompt(data)
-        setError(null)
-      } catch (err) {
-        console.error('Success page: Error in fetchPrompt:', err)
-        setError('Failed to load prompt data')
-        setPrompt(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchPrompt()
+    fetch(`/api/prompts/${params.id}`)
+      .then(res => res.json())
+      .then(json => {
+        setData({
+          expiresAt: json.expiresAt,
+          totalConfessions: json.totalConfessions,
+          content: json.content
+        })
+      })
+      .catch(err => console.error('Failed to load prompt:', err))
   }, [params.id])
 
   useEffect(() => {
-    if (!prompt?.expiresAt) return
+    if (!data?.expiresAt) return
 
     const updateTimeRemaining = () => {
       const now = Date.now()
-      const expiresAt = prompt.expiresAt
-      const diff = expiresAt - now
+      const diff = data.expiresAt - now
 
       if (diff <= 0) {
         setTimeRemaining('EXPIRED')
@@ -98,48 +51,15 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
       const seconds = Math.floor((diff % (1000 * 60)) / 1000)
 
-      const formattedHours = String(hours).padStart(2, '0')
-      const formattedMinutes = String(minutes).padStart(2, '0')
-      const formattedSeconds = String(seconds).padStart(2, '0')
-
-      setTimeRemaining(`${formattedHours}:${formattedMinutes}:${formattedSeconds}`)
+      setTimeRemaining(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`)
     }
 
     updateTimeRemaining()
     const interval = setInterval(updateTimeRemaining, 1000)
-
     return () => clearInterval(interval)
-  }, [prompt?.expiresAt])
+  }, [data?.expiresAt])
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#B02A15] relative flex items-center justify-center">
-        <div className="bg-[#FCD9A8] p-8 rounded-lg text-[#B02A15] text-center">
-          <h2 className={cn("text-2xl mb-4", neuzeitGrotesk.className)}>
-            {error}
-          </h2>
-          <Link
-            href="/prompts"
-            className={cn(
-              "text-[#B02A15] text-lg font-bold flex items-center gap-2 justify-center",
-              "hover:opacity-80 transition-opacity",
-              neuzeitGrotesk.className
-            )}
-          >
-            Return to Prompts
-            <Image
-              src="/images/icons/arrow-right-circle.png"
-              alt="Arrow right"
-              width={24}
-              height={24}
-            />
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (isLoading || !prompt) {
+  if (!data) {
     return <LoadingState message="Loading..." />
   }
 
@@ -157,7 +77,6 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
             <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>
               TIME REMAINING
             </h2>
-            
             <div className={cn("text-5xl", neuzeitGrotesk.className)}>
               {timeRemaining}
             </div>
@@ -171,7 +90,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
               <br />
               ALONG WITH
               <br />
-              {prompt.totalConfessions} OTHERS
+              {data.totalConfessions} OTHERS
             </div>
 
             <div className="flex flex-col items-center space-y-4 w-full">
@@ -208,7 +127,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
                 onClick={async () => {
                   try {
                     const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
-                      `I just confessed to Never Have I Ever ${prompt.content} Confess your secrets with me.`
+                      `I just confessed to Never Have I Ever ${data.content} Confess your secrets with me.`
                     )}&embeds[]=${encodeURIComponent(`https://never-have-i-ever.xyz/prompts/${params.id}`)}`
                     window.open(shareUrl, '_blank')
                   } catch (error) {
