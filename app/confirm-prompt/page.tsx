@@ -104,8 +104,7 @@ function ConfirmPromptContent() {
             <div className="flex items-start gap-2 text-[#B02A15]">
               <Image src="/images/icons/triangle_warning.png" alt="Warning" width={20} height={20} />
               <p className={`${neuzeitGrotesk.className} text-[15px]`}>
-                No take-backs or changes after confirmation.<br />
-                Choose wisely before unleashing chaos.
+                No take-backs or changes after confirmation. Choose wisely before unleashing chaos.
               </p>
             </div>
           </div>
