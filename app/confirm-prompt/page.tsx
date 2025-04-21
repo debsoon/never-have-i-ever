@@ -85,7 +85,7 @@ function ConfirmPromptContent() {
         <div className="w-full p-2 rounded-lg">
           <h2 className={`text-[#B02A15] text-xl mb-2 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
           <div className="w-full h-[1px] bg-[#B02A15] mb-4" />
-          <div className="text-[#B02A15] text-7xl text-center mb-4">NEVER HAVE<br />I EVER...</div>
+          <div className="text-[#B02A15] text-7xl text-center mb-4 whitespace-nowrap">NEVER HAVE<br />I EVER...</div>
           <div className={`text-[#B02A15] text-4xl text-center mb-8 ${neuzeitGrotesk.className}`}>{prompt}</div>
           <div className="bg-[#FFE5E5] p-4 rounded-lg mb-8">
             <div className="flex items-start gap-2 text-[#B02A15]">
