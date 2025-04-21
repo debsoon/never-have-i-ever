@@ -129,12 +129,6 @@ export default function PromptPage({ params }: { params: { id: string } }) {
     return () => clearInterval(timer)
   }, [prompt])
 
-  useEffect(() => {
-    if (hasConfessed) {
-      router.push(`/prompts/${params.id}/success`)
-    }
-  }, [hasConfessed, params.id, router])
-
   if (isLoading) {
     return <LoadingState message="Loading prompt..." />
   }
