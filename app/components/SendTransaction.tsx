@@ -48,13 +48,13 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'createPrompt',
-        args: [BigInt(86400)] // 24 hours
+        args: [BigInt(24)] // 24 hours
       })
 
       sendTransaction({
         to: contractAddress,
         data,
-        value: BigInt(0)
+        value: BigInt(630_000_000_000_000) // 0.00063 ETH = ~$1
       })
     } catch (err) {
       console.error('Error:', err)
