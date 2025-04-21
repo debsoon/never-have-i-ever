@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils'
 import { fetchFarcasterUser, fetchFarcasterUsers } from '@/app/utils/farcaster'
 import { FarcasterUser } from '@/app/types'
 import { LoadingState } from '@/app/components/LoadingState'
+import { useRouter } from 'next/navigation'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 
 interface RedisPrompt {
   id: string
@@ -63,12 +65,19 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
 }
 
 export default function PromptPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const { context } = useMiniKit()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confessionType, setConfessionType] = useState<'have' | 'never'>('have')
   const [prompt, setPrompt] = useState<RedisPrompt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [timeRemaining, setTimeRemaining] = useState('')
   const [userData, setUserData] = useState<Record<number, FarcasterUser>>({})
+
+  const isExpired = prompt?.expiresAt ? prompt.expiresAt < Date.now() : false
+  const hasConfessed = prompt?.confessions.some(
+    (confession) => confession.userFid === context?.user?.fid
+  ) || false
 
   useEffect(() => {
     async function fetchPrompt() {
@@ -120,6 +129,12 @@ export default function PromptPage({ params }: { params: { id: string } }) {
     return () => clearInterval(timer)
   }, [prompt])
 
+  useEffect(() => {
+    if (hasConfessed) {
+      router.push(`/prompts/${params.id}/success`)
+    }
+  }, [hasConfessed, params.id, router])
+
   if (isLoading) {
     return <LoadingState message="Loading prompt..." />
   }
@@ -150,11 +165,6 @@ export default function PromptPage({ params }: { params: { id: string } }) {
       </div>
     )
   }
-
-  const isExpired = prompt.expiresAt < Date.now()
-  const hasConfessed = prompt.confessions.some(
-    (confession) => confession.userFid === 12345 // TODO: Replace with actual user FID
-  )
 
   return (
     <div className="min-h-screen bg-[#B02A15] relative">

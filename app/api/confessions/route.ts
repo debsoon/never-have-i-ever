@@ -9,6 +9,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Check if user has already confessed
+    const existingConfession = await redisHelper.getConfession(confession.promptId, confession.userFid)
+    if (existingConfession) {
+      return NextResponse.json({ error: 'User has already confessed to this prompt' }, { status: 400 })
+    }
+
     await redisHelper.addConfession({
       promptId: confession.promptId,
       userFid: confession.userFid,

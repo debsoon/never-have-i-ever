@@ -85,7 +85,7 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
       setCaption('');
       setImageUrl('');
       onClose();
-      router.refresh();
+      router.push(`/prompts/${promptId}/success`);
     } catch (error) {
       console.error('Failed to submit confession:', error);
     }
