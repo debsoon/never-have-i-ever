@@ -21,13 +21,32 @@ async function loadPrompt(id: string): Promise<StoredPrompt | null> {
         'Content-Type': 'application/json',
       },
     })
-    if (res.status === 404) {
-      console.log('Success page: Prompt not found')
-      return null
+    
+    if (!res.ok) {
+      console.error('Success page: API request failed:', {
+        status: res.status,
+        statusText: res.statusText
+      })
+      if (res.status === 404) {
+        console.log('Success page: Prompt not found')
+        return null
+      }
+      throw new Error(`API request failed: ${res.status} ${res.statusText}`)
     }
+
     const data = await res.json()
     console.log('Success page: Received data:', data)
-    return data.prompt || null
+    
+    // The API returns the prompt data directly, not wrapped in a 'prompt' property
+    return {
+      id: data.id,
+      content: data.content,
+      authorFid: data.authorFid,
+      expiresAt: data.expiresAt,
+      totalConfessions: data.confessions?.length || 0,
+      createdAt: data.createdAt,
+      // other fields as needed
+    }
   } catch (error) {
     console.error('Success page: Error loading prompt:', error)
     return null
