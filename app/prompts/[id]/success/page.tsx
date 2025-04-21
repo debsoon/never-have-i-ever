@@ -7,9 +7,7 @@ import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
 import { useAccount } from 'wagmi'
 import { LoadingState } from '@/app/components/LoadingState'
-import { Transaction } from '@/app/components/Transaction'
-import { USDC_CONTRACT, TREASURY_ADDRESS } from '@/app/constants'
-import { parseUnits } from 'viem'
+import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 
 interface PromptData {
   expiresAt: number
@@ -94,34 +92,12 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="flex flex-col items-center space-y-4 w-full">
-              <Transaction 
-                calls={[{
-                  to: USDC_CONTRACT,
-                  data: `0xa9059cbb${TREASURY_ADDRESS.slice(2).padStart(64, '0')}${parseUnits('1', 6).toString(16).padStart(64, '0')}` as `0x${string}`,
-                  value: BigInt(0)
-                }]}
-                onSuccess={async () => {
-                  await fetch(`/api/prompts/${params.id}/payments`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ walletAddress: address })
-                  })
+              <PayToRevealTransaction 
+                promptId={params.id}
+                onSuccess={() => {
                   window.location.href = `/prompts/${params.id}/reveal`
                 }}
-                onError={(error) => console.error('Payment failed:', error)}
-              >
-                <button
-                  className={cn(
-                    "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
-                    "text-3xl hover:bg-[#8f2211] transition-colors",
-                    "border-2 border-[#B02A15]",
-                    txcPearl.className
-                  )}
-                  disabled={!address}
-                >
-                  PAY $1 TO SEE WHO THEY ARE
-                </button>
-              </Transaction>
+              />
 
               <button
                 onClick={async () => {

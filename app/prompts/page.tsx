@@ -226,7 +226,7 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
               CONFESS
             </button>
           </Link>
-          <Link href={`/prompts/${prompt.id}/reveal`}>
+          <Link href={prompt.hasResponded ? `/prompts/${prompt.id}/success` : `/prompts/${prompt.id}`}>
             <button 
               className={`bg-transparent text-[#B02A15] px-3 py-1 rounded-full
                         text-3xl whitespace-nowrap hover:bg-[#FCD9A8] transition-colors
