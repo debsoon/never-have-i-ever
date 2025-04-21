@@ -8,16 +8,11 @@ export async function GET(
 ) {
   console.log('API: Starting to fetch prompt:', params.id)
   
-  // Test Redis connection
-  console.log('API: Testing Redis connection...')
-  console.log('API: UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set')
-  console.log('API: UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Not set')
-  
   try {
     const prompt = await redisHelper.getPrompt(params.id)
     if (!prompt) {
       console.log('API: Prompt not found')
-      return new NextResponse(null, { status: 404 })
+      return NextResponse.json({ error: 'Prompt not found' }, { status: 404 })
     }
     console.log('API: Found prompt:', prompt)
 
@@ -50,6 +45,7 @@ export async function GET(
 
     const response = {
       ...prompt,
+      totalConfessions: confessions.length,
       author: {
         username: author.username,
         profileImage: author.pfp_url,
@@ -62,6 +58,6 @@ export async function GET(
     return NextResponse.json(response)
   } catch (error) {
     console.error('API Error:', error)
-    return new NextResponse(null, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

@@ -37,34 +37,46 @@ async function loadPrompt(id: string): Promise<StoredPrompt | null> {
     const data = await res.json()
     console.log('Success page: Received data:', data)
     
-    // The API returns the prompt data directly, not wrapped in a 'prompt' property
+    if (!data || typeof data !== 'object') {
+      console.error('Success page: Invalid data received:', data)
+      throw new Error('Invalid data received from API')
+    }
+
     return {
       id: data.id,
       content: data.content,
       authorFid: data.authorFid,
       expiresAt: data.expiresAt,
-      totalConfessions: data.confessions?.length || 0,
       createdAt: data.createdAt,
-      // other fields as needed
+      totalConfessions: data.totalConfessions || 0
     }
   } catch (error) {
     console.error('Success page: Error loading prompt:', error)
-    return null
+    throw error // Let the component handle the error
   }
 }
 
 export default function SuccessPage({ params }: { params: { id: string } }) {
   const [prompt, setPrompt] = useState<StoredPrompt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [timeRemaining, setTimeRemaining] = useState('')
   const { address } = useAccount()
 
   useEffect(() => {
     async function fetchPrompt() {
-      const data = await loadPrompt(params.id)
-      console.log('Success page: Setting prompt data:', data)
-      setPrompt(data)
-      setIsLoading(false)
+      try {
+        const data = await loadPrompt(params.id)
+        console.log('Success page: Setting prompt data:', data)
+        setPrompt(data)
+        setError(null)
+      } catch (err) {
+        console.error('Success page: Error in fetchPrompt:', err)
+        setError('Failed to load prompt data')
+        setPrompt(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
     fetchPrompt()
   }, [params.id])
@@ -98,6 +110,34 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
 
     return () => clearInterval(interval)
   }, [prompt?.expiresAt])
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#B02A15] relative flex items-center justify-center">
+        <div className="bg-[#FCD9A8] p-8 rounded-lg text-[#B02A15] text-center">
+          <h2 className={cn("text-2xl mb-4", neuzeitGrotesk.className)}>
+            {error}
+          </h2>
+          <Link
+            href="/prompts"
+            className={cn(
+              "text-[#B02A15] text-lg font-bold flex items-center gap-2 justify-center",
+              "hover:opacity-80 transition-opacity",
+              neuzeitGrotesk.className
+            )}
+          >
+            Return to Prompts
+            <Image
+              src="/images/icons/arrow-right-circle.png"
+              alt="Arrow right"
+              width={24}
+              height={24}
+            />
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading || !prompt) {
     return <LoadingState message="Loading..." />

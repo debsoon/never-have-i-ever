@@ -540,7 +540,7 @@ export default function PromptsPage() {
                             {prompt.status === 'ended' ? (
                               <button 
                                 className={cn(
-                                  "px-1.5 py-1 rounded-full text-xl uppercase tracking-wider",
+                                  "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
                                   txcPearl.className,
                                   "bg-transparent text-[#BEA98D] border-2 border-[#BEA98D] cursor-not-allowed"
                                 )}
@@ -552,7 +552,7 @@ export default function PromptsPage() {
                               <Link href={`/prompts/${prompt.id}`}>
                                 <button 
                                   className={cn(
-                                    "px-1.5 py-1 rounded-full text-xl uppercase tracking-wider",
+                                    "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
                                     txcPearl.className,
                                     "bg-[#B02A15] text-[#FCD9A8] border-2 border-[#B02A15] hover:bg-[#8f2211] transition-colors"
                                   )}
@@ -562,7 +562,7 @@ export default function PromptsPage() {
                               </Link>
                             )}
                             <button className={cn(
-                              "px-1.5 py-1 bg-transparent text-[#B02A15] rounded-full",
+                              "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
                               "text-xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
                               "border-2 border-[#B02A15] uppercase tracking-wider",
                               txcPearl.className
