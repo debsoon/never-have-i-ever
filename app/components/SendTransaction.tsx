@@ -86,33 +86,31 @@ export function SendTransaction({
 
       console.log('Sending transaction with data:', data)
       
-      sendTransaction({
+      await sendTransaction({
         to: contractAddress,
         data,
         value: BigInt(630_000_000_000_000) // Must match priceInWei in contract
-      }, {
-        onError: (error) => {
-          console.error('Transaction error:', error)
-          // Handle specific contract errors
-          if (error.message.includes('InsufficientPayment')) {
-            console.error('Payment amount must be exactly 0.00063 ETH')
-          } else if (error.message.includes('PromptNotFound')) {
-            console.error('Prompt not found')
-          } else if (error.message.includes('PromptExpired')) {
-            console.error('Prompt has expired')
-          } else if (error.message.includes('AlreadyRevealed')) {
-            console.error('You have already revealed this prompt')
-          }
-        }
       })
     } catch (err) {
       console.error('Error:', err)
+      // Handle specific contract errors
+      if (err instanceof Error) {
+        if (err.message.includes('InsufficientPayment')) {
+          console.error('Payment amount must be exactly 0.00063 ETH')
+        } else if (err.message.includes('PromptNotFound')) {
+          console.error('Prompt not found')
+        } else if (err.message.includes('PromptExpired')) {
+          console.error('Prompt has expired')
+        } else if (err.message.includes('AlreadyRevealed')) {
+          console.error('You have already revealed this prompt')
+        }
+      }
     }
   }
 
   // Auto-submit when component mounts if autoSubmit is true
   useEffect(() => {
-    if (autoSubmit && !hash && !isPending && !error) {
+    if (autoSubmit && isConnected && !hash && !isPending && !error) {
       prepareAndSendTransaction()
     }
   }, [isConnected, autoSubmit, hash, isPending, error])
