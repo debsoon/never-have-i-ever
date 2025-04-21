@@ -3,16 +3,24 @@
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
-import { neuzeitGrotesk } from '@/utils/fonts'
+import { neuzeitGrotesk, txcPearl } from '@/utils/fonts'
 import { useEffect } from 'react'
+import { cn } from '@/lib/utils'
 
 const CONTRACT_ABI = [
   {
     name: 'createPrompt',
     type: 'function',
     stateMutability: 'nonpayable',
-    inputs: [{ name: 'durationInSeconds', type: 'uint256' }],
+    inputs: [{ name: 'durationInHours', type: 'uint256' }],
     outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'payToReveal',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'promptId', type: 'uint256' }],
+    outputs: [],
   }
 ] as const
 
@@ -20,9 +28,31 @@ interface SendTransactionProps {
   contractAddress: `0x${string}`
   onSuccess?: (hash: `0x${string}`) => void
   autoSubmit?: boolean
+  className?: string
+  variant?: 'button' | 'link'
+  functionName: 'createPrompt' | 'payToReveal'
+  args: any[]
+  buttonText?: {
+    pending?: string
+    confirming?: string
+    default?: string
+  }
 }
 
-export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true }: SendTransactionProps) {
+export function SendTransaction({ 
+  contractAddress, 
+  onSuccess, 
+  autoSubmit = true,
+  className,
+  variant = 'button',
+  functionName,
+  args,
+  buttonText = {
+    pending: 'Check your wallet...',
+    confirming: 'Processing...',
+    default: 'PAY $1 TO SUBMIT'
+  }
+}: SendTransactionProps) {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   
@@ -47,8 +77,8 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
     try {
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
-        functionName: 'createPrompt',
-        args: [BigInt(24)] // 24 hours
+        functionName,
+        args: [BigInt(args[0])] as const
       })
 
       sendTransaction({
@@ -82,16 +112,26 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true 
   }, [isConfirmed, hash, onSuccess])
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 w-full">
+    <form onSubmit={submit} className={cn("flex flex-col gap-4 w-full", className)}>
       <button 
         disabled={isPending || isConfirming}
         type="submit"
-        className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider"
+        className={cn(
+          variant === 'button' ? [
+            "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
+            "text-3xl hover:bg-[#8f2211] transition-colors",
+            "border-2 border-[#B02A15]",
+            txcPearl.className
+          ] : [
+            "text-[#B02A15] text-lg underline hover:opacity-80 transition-opacity inline-block",
+            neuzeitGrotesk.className
+          ]
+        )}
       >
-        {isPending ? 'Check your wallet...' :
-         isConfirming ? 'Creating prompt...' :
+        {isPending ? buttonText.pending :
+         isConfirming ? buttonText.confirming :
          !isConnected ? 'CONNECT WALLET' :
-         'PAY $1 TO SUBMIT'}
+         buttonText.default}
       </button>
 
       {isConnected && (

@@ -13,7 +13,8 @@ import { FarcasterUser } from '@/app/types'
 import { LoadingState } from '@/app/components/LoadingState'
 import { useRouter } from 'next/navigation'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
-import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
+import { SendTransaction } from '@/app/components/SendTransaction'
+import { CONTRACT_ADDRESS } from '@/app/constants'
 
 interface RedisPrompt {
   id: string
@@ -249,6 +250,22 @@ export default function PromptPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
             )}
+
+            {isExpired && (
+              <SendTransaction
+                contractAddress={CONTRACT_ADDRESS}
+                onSuccess={() => {
+                  window.location.href = `/prompts/${params.id}/reveal`
+                }}
+                functionName="payToReveal"
+                args={[params.id]}
+                buttonText={{
+                  pending: 'Confirming...',
+                  confirming: 'Processing...',
+                  default: 'REVEAL NOW'
+                }}
+              />
+            )}
           </div>
 
           <div className="text-center">
@@ -256,14 +273,6 @@ export default function PromptPage({ params }: { params: { id: string } }) {
             <div className={cn("text-[#B02A15] font-bold text-xl mb-2", neuzeitGrotesk.className)}>
               CONFESSIONS AND COUNTING
             </div>
-            <PayToRevealTransaction 
-              promptId={prompt.id}
-              onSuccess={() => {
-                router.push(`/prompts/${prompt.id}/reveal`)
-              }}
-              className="mt-2"
-              variant="link"
-            />
           </div>
         </div>
       </div>
