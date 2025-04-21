@@ -216,7 +216,7 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
           </span>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Link href={`/prompts/${prompt.id}`}>
             <button 
               className={`bg-[#B02A15] text-[#FCD9A8] px-3 py-1 rounded-full
@@ -387,12 +387,12 @@ export default function PromptsPage() {
                       <div className="flex flex-col items-center gap-6">
                         <div className={cn("text-[#784E14] text-xl", neuzeitGrotesk.className)}>
                           <p><span className="font-bold">Nothing to see here... yet.</span></p>
-                          <p>Post your first "Never Have I Ever"<br />to stir the pot.</p>
+                          <p>Post your first "Never Have I Ever" to stir the pot.</p>
                         </div>
                         <Link href="/create-prompt" className={cn(
-                          "inline-block text-center bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
+                          "inline-block text-center bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
                           "text-3xl hover:bg-[#8f2211] transition-colors",
-                          "border-2 border-[#B02A15] uppercase tracking-wider",
+                          "border-2 border-[#B02A15] uppercase tracking-wider whitespace-nowrap",
                           txcPearl.className
                         )}>
                           CREATE A PROMPT
@@ -414,9 +414,9 @@ export default function PromptsPage() {
                         <button 
                           onClick={() => setActiveTab('all')}
                           className={cn(
-                            "inline-block text-center bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
+                            "inline-block text-center bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
                             "text-3xl hover:bg-[#8f2211] transition-colors",
-                            "border-2 border-[#B02A15] uppercase tracking-wider",
+                            "border-2 border-[#B02A15] uppercase tracking-wider whitespace-nowrap",
                             txcPearl.className
                           )}
                         >

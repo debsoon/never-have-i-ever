@@ -85,7 +85,7 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
       setCaption('');
       setImageUrl('');
       onClose();
-      router.replace(`/prompts/${promptId}/success`);
+      window.location.href = `/prompts/${promptId}/success`;
     } catch (error) {
       console.error('Failed to submit confession:', error);
     }
