@@ -47,13 +47,10 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
     const data = await res.json()
     console.log('Raw prompt data from Redis:', data)
     
-    // Extract authorFid from the author object if needed
-    const authorFid = data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0
-    
     return {
       id: data.id,
       content: data.content,
-      authorFid: authorFid,
+      authorFid: data.authorFid || data.author?.authorFid || 0,
       createdAt: data.createdAt,
       expiresAt: data.expiresAt,
       totalConfessions: data.totalConfessions || 0,
@@ -76,29 +73,38 @@ export default function PromptPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     async function fetchPrompt() {
       const data = await loadPrompt(params.id)
-      console.log('Loaded prompt data:', data)
+      console.log('Frontend: Loaded prompt data:', data)
       setPrompt(data)
       setIsLoading(false)
 
-      if (data?.authorFid) {
-        console.log('Fetching user data for FID:', data.authorFid)
-        try {
-          const userMap = await fetchFarcasterUsers([data.authorFid])
-          console.log('Received user data:', userMap)
-          
-          if (userMap.size > 0) {
-            const userDataObj: Record<number, FarcasterUser> = {}
-            userMap.forEach((user, fid) => {
-              userDataObj[fid] = user
-            })
-            console.log('Setting user data:', userDataObj)
-            setUserData(userDataObj)
-          } else {
-            console.warn('No user data returned from API')
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error)
+      // Get unique FIDs from author and confessions
+      const fids = new Set<number>()
+      if (data?.authorFid) fids.add(data.authorFid)
+      data?.confessions?.forEach(confession => fids.add(confession.userFid))
+      const uniqueFids = Array.from(fids).filter(fid => fid !== undefined && fid !== null)
+
+      if (uniqueFids.length === 0) {
+        console.log('Frontend: No valid FIDs found in prompt')
+        return
+      }
+
+      console.log('Frontend: Fetching user data for FIDs:', uniqueFids)
+      try {
+        const userMap = await fetchFarcasterUsers(uniqueFids)
+        console.log('Frontend: Received user data:', userMap)
+        
+        if (userMap.size > 0) {
+          const userDataObj: Record<number, FarcasterUser> = {}
+          userMap.forEach((user, fid) => {
+            userDataObj[fid] = user
+          })
+          console.log('Frontend: Setting user data:', userDataObj)
+          setUserData(userDataObj)
+        } else {
+          console.warn('Frontend: No user data returned from API')
         }
+      } catch (error) {
+        console.error('Frontend: Error fetching user data:', error)
       }
     }
     fetchPrompt()
