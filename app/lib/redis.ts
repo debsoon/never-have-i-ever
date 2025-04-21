@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis'
 const KEYS = {
   PROMPT: (id: string) => `prompt:${id}`,
   PROMPT_LIST: 'prompts:list',
-  CONFESSION: (promptId: string, index: number) => `confession:${promptId}:${index}`,
+  CONFESSION: (promptId: string, userFid: number) => `confession:${promptId}:${userFid}`,
   CONFESSIONS_BY_PROMPT: (promptId: string) => `confessions:prompt:${promptId}`,
   PAYMENT: (promptId: string, userFid: number) => `payment:${promptId}:${userFid}`,
   IMAGE: (promptId: string, userFid: number) => `image:${promptId}:${userFid}`,
@@ -27,7 +27,11 @@ export interface StoredConfession {
   imageUrl?: string
   caption?: string
   timestamp: number
-  transactionHash: string
+  transactionHash?: string
+  // User properties added by the API
+  username?: string
+  profileImage?: string
+  userAddress?: string
 }
 
 export interface PaymentStatus {
@@ -150,7 +154,9 @@ class LocalStorageHelper implements StorageInterface {
 
 // Redis storage adapter
 class RedisStorageAdapter implements StorageInterface {
-  constructor(private redis: Redis) {}
+  constructor(private redis: Redis) {
+    console.log('Redis: Initializing RedisStorageAdapter with URL:', process.env.UPSTASH_REDIS_REST_URL)
+  }
 
   async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
     const key = KEYS.PROMPT(prompt.id)
@@ -175,15 +181,32 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async addConfession(confession: StoredConfession): Promise<void> {
+    console.log('Redis: Adding confession:', confession)
     const confessionKey = KEYS.CONFESSION(confession.promptId, confession.userFid)
+    console.log('Redis: Using confession key:', confessionKey)
+    
+    // Store the confession
     await this.redis.set(confessionKey, confession)
+    console.log('Redis: Stored confession at key:', confessionKey)
+    
+    // Add to the set of confessions for this prompt
     const promptConfessionsKey = KEYS.CONFESSIONS_BY_PROMPT(confession.promptId)
+    console.log('Redis: Adding to confessions set with key:', promptConfessionsKey)
     await this.redis.sadd(promptConfessionsKey, confession.userFid.toString())
+    console.log('Redis: Added userFid to confessions set:', confession.userFid)
+    
+    // Update the prompt's confession count
     const promptKey = KEYS.PROMPT(confession.promptId)
+    console.log('Redis: Updating prompt with key:', promptKey)
     const prompt = await this.redis.get<StoredPrompt>(promptKey)
     if (prompt) {
+      console.log('Redis: Current prompt totalConfessions:', prompt.totalConfessions)
       prompt.totalConfessions++
+      console.log('Redis: New prompt totalConfessions:', prompt.totalConfessions)
       await this.redis.set(promptKey, prompt)
+      console.log('Redis: Updated prompt totalConfessions')
+    } else {
+      console.log('Redis: Prompt not found for confession:', confession.promptId)
     }
   }
 
@@ -192,14 +215,22 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async getPromptConfessions(promptId: string): Promise<StoredConfession[]> {
+    console.log('Redis: Starting to fetch confessions for prompt:', promptId)
     const confessions: StoredConfession[] = []
-    const userFids = await this.redis.smembers(KEYS.CONFESSIONS_BY_PROMPT(promptId))
     
-    for (const userFid of userFids) {
-      const confession = await this.getConfession(promptId, parseInt(userFid))
+    // Get all confession keys for this prompt
+    const confessionKeys = await this.redis.keys(`confession:${promptId}:*`)
+    console.log('Redis: Found confession keys:', confessionKeys)
+    
+    // Fetch each confession
+    for (const key of confessionKeys) {
+      console.log('Redis: Fetching confession with key:', key)
+      const confession = await this.redis.get<StoredConfession>(key)
+      console.log('Redis: Found confession:', confession)
       if (confession) confessions.push(confession)
     }
     
+    console.log('Redis: Total confessions found:', confessions.length)
     return confessions
   }
 
@@ -226,14 +257,19 @@ export class RedisHelperClass {
   private storage: StorageInterface
 
   constructor() {
+    console.log('Redis: Initializing RedisHelperClass')
+    console.log('Redis: Checking environment variables...')
+    console.log('Redis: UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set')
+    console.log('Redis: UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Not set')
+    
     if (typeof window === 'undefined' && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-      // Server-side with Redis
+      console.log('Redis: Using RedisStorageAdapter')
       this.storage = new RedisStorageAdapter(new Redis({
         url: process.env.UPSTASH_REDIS_REST_URL,
         token: process.env.UPSTASH_REDIS_REST_TOKEN
       }))
     } else {
-      // Client-side or no Redis
+      console.log('Redis: Using LocalStorageHelper')
       this.storage = new LocalStorageHelper()
     }
   }

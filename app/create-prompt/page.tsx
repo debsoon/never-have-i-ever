@@ -16,7 +16,9 @@ export default function CreatePromptPage() {
     if (prompt.trim()) {
       // Remove any ending punctuation and ensure it ends with a period
       const trimmedPrompt = prompt.trim().replace(/[.!?]+$/, '')
-      const finalPrompt = `${trimmedPrompt}.`
+      // Ensure first letter is lowercase
+      const lowercasePrompt = trimmedPrompt.charAt(0).toLowerCase() + trimmedPrompt.slice(1)
+      const finalPrompt = `${lowercasePrompt}.`
       
       // Navigate to confirm page with the prompt as a query parameter
       router.push(`/confirm-prompt?prompt=${encodeURIComponent(finalPrompt)}`)
@@ -33,7 +35,7 @@ export default function CreatePromptPage() {
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-8">
         {/* Main Content */}
         <div className="w-full flex flex-col items-center gap-4">
-          <h1 className={`text-[#B02A15] text-7xl text-center leading-none ${txcPearl.className}`}>
+          <h1 className={`text-[#B02A15] text-7xl text-center leading-none pt-8 ${txcPearl.className}`}>
             NEVER HAVE<br />
             I EVER...
           </h1>
@@ -59,8 +61,8 @@ export default function CreatePromptPage() {
 
           <button 
             onClick={handleSubmit}
-            className="bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full
-                      text-3xl hover:bg-[#8f2211] transition-colors
+            className="bg-[#B02A15] text-[#FCD9A8] px-6 py-1.5 rounded-full
+                      text-3xl whitespace-nowrap hover:bg-[#8f2211] transition-colors
                       border-2 border-[#B02A15] uppercase tracking-wider z-10"
           >
             PAY $1 TO SUBMIT
@@ -76,27 +78,27 @@ export default function CreatePromptPage() {
           
           {/* Back to Instructions Link */}
           <div className="max-w-2xl mx-auto pr-4 mb-12 mt-0">
-          <Link 
-            href="/instructions" 
-            className={cn(
-              "flex items-center gap-2 text-[#B02A15] text-lg hover:opacity-80 transition-opacity",
-              neuzeitGrotesk.className
-            )}
-          >
-            <Image
-              src="/images/icons/arrow-left-circle.svg"
-              alt=""
-              width={24}
-              height={24}
-              style={{
-                filter: 'invert(21%) sepia(75%) saturate(2410%) hue-rotate(351deg) brightness(87%) contrast(92%)'
-              }}
-            />
-            <span className="font-bold">RETURN TO INSTRUCTIONS</span>
-          </Link>
-        </div>
+            <Link 
+              href="/instructions" 
+              className={cn(
+                "flex items-center gap-2 text-[#B02A15] text-[22px] hover:opacity-80 transition-opacity",
+                neuzeitGrotesk.className
+              )}
+            >
+              <Image
+                src="/images/icons/arrow-left-circle.svg"
+                alt=""
+                width={28}
+                height={28}
+                style={{
+                  filter: 'invert(21%) sepia(75%) saturate(2410%) hue-rotate(351deg) brightness(87%) contrast(92%)'
+                }}
+              />
+              <span className="font-bold">RETURN TO INSTRUCTIONS</span>
+            </Link>
+          </div>
         </div>
       </div>
     </main>
   )
-} 
+}

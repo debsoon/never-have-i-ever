@@ -8,12 +8,12 @@ export default function InstructionsPage() {
     <main 
       className={`flex min-h-screen flex-col items-center justify-center 
                   bg-cover bg-center bg-no-repeat ${txcPearl.className}
-                  border-[32px] border-[#B02A15]`}
+                  border-viewport border-[#B02A15]`}
       style={{ backgroundImage: 'url("/images/background.png")' }}
     >
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-2">
         <div className="p-8 rounded-lg w-full">
-          <h1 className={`text-[#B02A15] text-6xl font-bold mb-8 text-center ${txcPearl.className}`}>
+          <h1 className={`text-[#B02A15] text-6xl mb-8 text-center whitespace-nowrap ${txcPearl.className}`}>
             HOW IT WORKS
           </h1>
           
@@ -53,15 +53,15 @@ export default function InstructionsPage() {
 
           <div className="flex flex-col items-center gap-4 mt-8">
             <Link href="/create-prompt">
-              <button className="bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full
-                               text-2xl whitespace-nowrap hover:bg-[#8f2211] transition-colors
+              <button className="bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full
+                               text-3xl whitespace-nowrap hover:bg-[#8f2211] transition-colors
                                border-2 border-[#B02A15] uppercase tracking-wider z-10">
                 CREATE A PROMPT
               </button>
             </Link>
             <Link href="/prompts">
-              <button className="bg-transparent text-[#B02A15] px-6 py-2 rounded-full
-                               text-2xl whitespace-nowrap hover:bg-[#B02A15] hover:text-[#E8D0B3] transition-colors
+              <button className="bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full
+                               text-3xl whitespace-nowrap hover:bg-[#B02A15] hover:text-[#E8D0B3] transition-colors
                                border-[3px] border-[#B02A15] uppercase tracking-wider z-10">
                 CONFESS TO A PROMPT
               </button>

@@ -1,15 +1,15 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { base } from "wagmi/chains";
+import { base } from "viem/chains";
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { config } from './config/wagmi'
-import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
+import { MiniKitProvider } from "@coinbase/onchainkit/minikit"
 
 const queryClient = new QueryClient()
 
-export function Providers(props: { children: ReactNode }) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
@@ -20,12 +20,12 @@ export function Providers(props: { children: ReactNode }) {
             appearance: {
               mode: "auto",
               theme: "mini-app-theme",
-              name: process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME,
-              logo: process.env.NEXT_PUBLIC_ICON_URL,
+              name: "Never Have I Ever",
+              logo: "/images/solocup.png",
             },
           }}
         >
-          {props.children}
+          {children}
         </MiniKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

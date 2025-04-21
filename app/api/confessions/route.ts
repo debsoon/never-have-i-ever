@@ -3,40 +3,25 @@ import { redisHelper } from '@/app/lib/redis'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { 
-      promptId,
-      userFid,
-      hasConfessed,
-      imageUrl,
-      txHash 
-    } = body
+    const { promptId, userFid, type, imageUrl, caption, transactionHash } = await request.json()
 
-    // Record the confession
+    if (!promptId || !userFid || !type || !transactionHash) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
     await redisHelper.addConfession({
       promptId,
       userFid,
-      type: hasConfessed ? 'have' : 'never',
+      type,
       imageUrl,
-      transactionHash: txHash,
-      timestamp: Date.now()
-    })
-
-    // Record the payment
-    await redisHelper.recordPayment({
-      promptId,
-      userFid,
-      hasPaid: true,
-      txHash,
+      caption,
+      transactionHash,
       timestamp: Date.now()
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to record confession:', error)
-    return NextResponse.json(
-      { error: 'Failed to record confession' },
-      { status: 500 }
-    )
+    console.error('Error adding confession:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

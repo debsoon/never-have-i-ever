@@ -14,7 +14,6 @@ import { Transaction } from '@/app/components/Transaction'
 import { USDC_CONTRACT, TREASURY_ADDRESS } from '@/app/constants'
 import { parseUnits } from 'viem'
 import { StateDebugger } from '@/app/components/StateDebugger'
-import { sdk } from '@farcaster/frame-sdk'
 import confetti from 'canvas-confetti'
 import { LoadingState } from '@/app/components/LoadingState'
 
@@ -36,23 +35,31 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
         'Content-Type': 'application/json',
       },
     })
+    
     if (res.status === 404) {
       return null
     }
+    
     const data = await res.json()
     console.log('Raw prompt data from Redis:', data)
-    
-    // Extract authorFid from the author object if needed
-    const authorFid = data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0
     
     return {
       id: data.id,
       content: data.content,
-      authorFid: authorFid,
+      authorFid: data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0,
       createdAt: data.createdAt,
       expiresAt: data.expiresAt,
-      totalConfessions: data.totalConfessions || 0,
-      confessions: data.confessions || []
+      totalConfessions: data.totalConfessions,
+      confessions: data.confessions.map((confession: any) => ({
+        userFid: confession.userFid,
+        type: confession.type,
+        imageUrl: confession.imageUrl,
+        caption: confession.caption,
+        timestamp: confession.timestamp,
+        username: confession.username || String(confession.userFid),
+        profileImage: confession.profileImage || '/images/default.png',
+        userAddress: confession.userAddress || '0x0000000000000000000000000000000000000000'
+      }))
     }
   } catch (error) {
     console.error('Error loading prompt:', error)
@@ -156,36 +163,66 @@ export default function RevealPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function fetchPrompt() {
-      const data = await loadPrompt(params.id)
-      console.log('Loaded prompt data:', data)
-      setPrompt(data)
-      setIsLoading(false)
-
-      if (data?.confessions) {
-        // Get all unique FIDs from confessions
-        const userFids = Array.from(new Set(
-          data.confessions.map(c => c.userFid)
-        )).filter(fid => fid !== undefined && fid !== null)
-
-        console.log('Fetching user data for FIDs:', userFids)
-        try {
-          const userMap = await fetchFarcasterUsers(userFids)
-          console.log('Received user data:', userMap)
-          
-          if (userMap.size > 0) {
-            const userDataObj: Record<number, FarcasterUser> = {}
-            userMap.forEach((user, fid) => {
-              userDataObj[fid] = user
-            })
-            console.log('Setting user data:', userDataObj)
-            setUserData(userDataObj)
-          } else {
-            console.warn('No user data returned from API')
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error)
-        }
+      console.log('Frontend: Starting to fetch prompt:', params.id)
+      const res = await fetch(`/api/prompts/${params.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (res.status === 404) {
+        console.log('Frontend: Prompt not found')
+        setPrompt(null)
+        setIsLoading(false)
+        return
       }
+
+      const data = await res.json()
+      console.log('Frontend: Raw API response:', data)
+      console.log('Frontend: Confessions from API:', data.confessions)
+
+      const formattedPrompt = {
+        id: data.id,
+        content: data.content,
+        authorFid: data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0,
+        createdAt: data.createdAt,
+        expiresAt: data.expiresAt,
+        totalConfessions: data.totalConfessions,
+        confessions: data.confessions.map((confession: any) => ({
+          userFid: confession.userFid,
+          type: confession.type,
+          imageUrl: confession.imageUrl,
+          caption: confession.caption,
+          timestamp: confession.timestamp,
+          username: confession.username || String(confession.userFid),
+          profileImage: confession.profileImage || '/images/default.png',
+          userAddress: confession.userAddress || '0x0000000000000000000000000000000000000000'
+        }))
+      }
+
+      console.log('Frontend: Formatted prompt data:', formattedPrompt)
+      console.log('Frontend: Formatted confessions:', formattedPrompt.confessions)
+
+      setPrompt(formattedPrompt)
+
+      // Create a map of user data from the confessions
+      const userDataMap: Record<number, FarcasterUser> = {}
+      data.confessions.forEach((confession: any) => {
+        userDataMap[confession.userFid] = {
+          fid: confession.userFid,
+          username: confession.username || String(confession.userFid),
+          display_name: confession.username || String(confession.userFid),
+          pfp_url: confession.profileImage || '/images/default.png',
+          verified_addresses: {
+            eth_addresses: [confession.userAddress || '0x0000000000000000000000000000000000000000']
+          }
+        }
+      })
+
+      console.log('Frontend: Setting user data map:', userDataMap)
+      setUserData(userDataMap)
+      setIsLoading(false)
     }
     fetchPrompt()
   }, [params.id])
@@ -319,7 +356,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
 
               <div className="bg-[#FFEDD4] rounded-lg p-6 mb-8 w-full shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
                 <div className={cn("text-[#B02A15] text-2xl font-bold mb-4", neuzeitGrotesk.className)}>
-                  THE ONES WHO HAVE
+                  {hasPaid && !isExpired 
+                    ? `${haveConfessions.length} OUT OF ${prompt?.totalConfessions} HAVE`
+                    : 'THE ONES WHO HAVE'
+                  }
                 </div>
 
                 <div className="space-y-4 mb-8 pl-10">
@@ -328,15 +368,15 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                       <div 
                         className={`relative w-10 h-10 flex-shrink-0 ${confession.imageUrl ? 'cursor-pointer' : ''}`}
                         onClick={() => confession.imageUrl && setSelectedImage({
-                          username: userData[confession.userFid]?.username || String(confession.userFid),
-                          profileImage: userData[confession.userFid]?.pfp_url || '/images/default.png',
+                          username: confession.username || String(confession.userFid),
+                          profileImage: confession.profileImage || '/images/default.png',
                           caption: confession.caption || '',
-                          recipientAddress: (userData[confession.userFid]?.verified_addresses?.eth_addresses[0] || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+                          recipientAddress: (confession.userAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
                           imageUrl: confession.imageUrl
                         })}
                       >
                         <Image
-                          src={userData[confession.userFid]?.pfp_url || '/images/default.png'}
+                          src={confession.profileImage || '/images/default.png'}
                           alt=""
                           fill
                           className="rounded-full object-cover"
@@ -344,7 +384,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                       </div>
                       <span className={cn("text-[#B02A15] text-xl", neuzeitGrotesk.className)}>
                         <span className="no-underline">@</span>
-                        <span className="underline">{userData[confession.userFid]?.username || confession.userFid}</span>
+                        <span className="underline">{confession.username || confession.userFid}</span>
                       </span>
                       {confession.imageUrl && (
                         <Image
@@ -354,10 +394,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                           height={20}
                           className="cursor-pointer"
                           onClick={() => setSelectedImage({
-                            username: userData[confession.userFid]?.username || String(confession.userFid),
-                            profileImage: userData[confession.userFid]?.pfp_url || '/images/default.png',
+                            username: confession.username || String(confession.userFid),
+                            profileImage: confession.profileImage || '/images/default.png',
                             caption: confession.caption || '',
-                            recipientAddress: (userData[confession.userFid]?.verified_addresses?.eth_addresses[0] || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+                            recipientAddress: (confession.userAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
                             imageUrl: confession.imageUrl
                           })}
                         />
@@ -390,7 +430,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                           <span className={cn("text-[#5B4527] text-xl", neuzeitGrotesk.className)}>
                             <span className="no-underline">@</span>
                             <span className="underline hover:opacity-80 transition-opacity">
-                              {userData[confession.userFid]?.username || confession.userFid}
+                              {confession.username || confession.userFid}
                             </span>
                           </span>
                           {index < neverConfessions.length - 1 && (
@@ -509,7 +549,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   NO ONE PAID TO SEE WHO CAME CLEAN. ALL CONFESSIONS HAVE BEEN BURNED AND LOST FOREVER.
                 </p>
 
-                <div className="flex flex-col items-center gap-4 mb-12">
+                <div className="flex flex-col items-center gap-3 mb-12">
                   <Link
                     href="/create-prompt"
                     className={cn(
@@ -579,7 +619,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="relative w-full h-[500px] mb-16">
-                <div className="absolute left-1/2 -translate-x-[85%] -rotate-6 w-[280px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)]">
+                <div className="absolute left-1/2 -translate-x-[75%] -rotate-12 w-[280px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)]">
                   <div className="relative w-full pb-[120%]">
                     <Image
                       src="/images/paperbackground.jpg"
@@ -597,7 +637,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                         />
                       </div>
                     </div>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[180px] h-[60px]">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[220px] h-[70px]">
                       <Image
                         src="/images/pieceoftape.png"
                         alt="Tape"
@@ -608,7 +648,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 
-                <div className="absolute left-1/2 -translate-x-[15%] translate-y-[60%] rotate-6 w-[280px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)]">
+                <div className="absolute left-1/2 -translate-x-[25%] translate-y-[60%] rotate-12 w-[280px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)]">
                   <div className="relative w-full pb-[120%]">
                     <Image
                       src="/images/paperbackground.jpg"
@@ -626,7 +666,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                         />
                       </div>
                     </div>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[180px] h-[60px]">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[220px] h-[70px]">
                       <Image
                         src="/images/pieceoftape.png"
                         alt="Tape"

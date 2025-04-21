@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .border-viewport {
+    @apply border-[16px] md:border-[32px];
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #111111;

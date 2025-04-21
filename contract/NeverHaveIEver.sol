@@ -28,7 +28,7 @@ contract NeverHaveIEver is Ownable {
     function createPrompt(uint256 durationInSeconds) external returns (uint256) {
         require(durationInSeconds > 0, "Duration must be positive");
 
-        // Transfer 1 USDC from sender to owner
+        // Transfer 1 USDC directly from sender
         require(usdcToken.transferFrom(msg.sender, owner(), 1e6), "Payment failed");
 
         promptCount++;
@@ -55,7 +55,7 @@ contract NeverHaveIEver is Ownable {
             "Prompt expired with no reveals"
         );
 
-        // Transfer 1 USDC from sender to this contract
+        // Transfer 1 USDC directly from sender
         require(usdcToken.transferFrom(msg.sender, address(this), 1e6), "Payment failed");
 
         // Split payment: 80% to creator, 20% to contract owner

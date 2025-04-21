@@ -1,85 +1,67 @@
 import { NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
-import { getFarcasterUserByFid } from '@/app/lib/farcaster'
+import { fetchFarcasterUsers } from '@/app/utils/farcaster'
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  console.log('API: Starting to fetch prompt:', params.id)
+  
+  // Test Redis connection
+  console.log('API: Testing Redis connection...')
+  console.log('API: UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set')
+  console.log('API: UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Not set')
+  
   try {
-    console.log('Fetching prompt with ID:', params.id);
-    
-    // Get the prompt
     const prompt = await redisHelper.getPrompt(params.id)
     if (!prompt) {
-      console.log('Prompt not found:', params.id);
+      console.log('API: Prompt not found')
       return new NextResponse(null, { status: 404 })
     }
+    console.log('API: Found prompt:', prompt)
 
-    // Get author details
-    console.log('Fetching author details for FID:', prompt.authorFid);
-    const author = await getFarcasterUserByFid(prompt.authorFid)
-    if (!author) {
-      console.log('Author not found for FID:', prompt.authorFid);
-      return new NextResponse(JSON.stringify({ error: 'Author not found' }), { 
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
+    const confessions = await redisHelper.getPromptConfessions(params.id)
+    console.log('API: Found confessions:', confessions)
+
+    // Get unique FIDs from confessions and author
+    const fids = new Set([prompt.authorFid])
+    confessions.forEach(confession => fids.add(confession.userFid))
+    const uniqueFids = Array.from(fids).filter(fid => fid !== undefined && fid !== null)
+    
+    console.log('API: Fetching Farcaster data for FIDs:', uniqueFids)
+    const userMap = await fetchFarcasterUsers(uniqueFids)
+    console.log('API: Fetched user data:', userMap)
+
+    // Add user data to confessions
+    const confessionsWithUserData = confessions.map(confession => ({
+      ...confession,
+      username: userMap.get(confession.userFid)?.username || String(confession.userFid),
+      profileImage: userMap.get(confession.userFid)?.pfp_url || '/images/default.png',
+      userAddress: userMap.get(confession.userFid)?.verified_addresses?.eth_addresses?.[0] || '0x0000000000000000000000000000000000000000'
+    }))
+
+    // Add author data
+    const author = userMap.get(prompt.authorFid) || {
+      username: String(prompt.authorFid),
+      pfp_url: '/images/default.png',
+      verified_addresses: { eth_addresses: ['0x0000000000000000000000000000000000000000'] }
     }
 
-    // Get confessions
-    console.log('Fetching confessions for prompt:', params.id);
-    const confessions = await redisHelper.getPromptConfessions(params.id)
-    
-    // Get user details for each confession
-    const confessionsWithUsers = await Promise.all(
-      confessions.map(async (confession) => {
-        try {
-          const user = await getFarcasterUserByFid(confession.userFid)
-          return {
-            ...confession,
-            username: user?.username || 'Unknown',
-            profileImage: user?.profileImage || '/images/default-avatar.png',
-            userAddress: user?.walletAddress || '0x0000000000000000000000000000000000000000'
-          }
-        } catch (error) {
-          console.error('Error fetching user details:', error);
-          return {
-            ...confession,
-            username: 'Unknown',
-            profileImage: '/images/default-avatar.png',
-            userAddress: '0x0000000000000000000000000000000000000000'
-          }
-        }
-      })
-    )
-
-    // Format the response
     const response = {
-      id: prompt.id,
-      content: prompt.content,
+      ...prompt,
       author: {
         username: author.username,
-        profileImage: author.profileImage || '/images/default-avatar.png',
-        walletAddress: author.walletAddress
+        profileImage: author.pfp_url,
+        userAddress: author.verified_addresses?.eth_addresses?.[0] || '0x0000000000000000000000000000000000000000'
       },
-      confessions: confessionsWithUsers,
-      expiresAt: prompt.expiresAt,
-      createdAt: prompt.createdAt,
-      totalConfessions: prompt.totalConfessions,
-      paidUsers: [] // TODO: Add paid users from payment records
+      confessions: confessionsWithUserData
     }
 
-    console.log('Successfully prepared response for prompt:', params.id);
+    console.log('API: Prepared response:', response)
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Error in GET /api/prompts/[id]:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    console.error('API Error:', error)
+    return new NextResponse(null, { status: 500 })
   }
 } 

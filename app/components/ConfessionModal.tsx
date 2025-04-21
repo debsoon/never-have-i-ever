@@ -72,7 +72,8 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
 
     try {
       const newConfession = {
-        fid: context.user.fid,
+        userFid: context.user.fid,
+        promptId,
         type: type,
         caption: type === 'have' ? (caption || undefined) : undefined,
         imageUrl: type === 'have' ? (imageUrl || undefined) : undefined,
@@ -82,17 +83,18 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
       
       setCaption('');
       setImageUrl('');
-      router.push('/');
+      onClose();
+      router.refresh();
     } catch (error) {
       console.error('Failed to submit confession:', error);
     }
-  }, [addConfession, type, caption, context?.user?.fid, imageUrl, router]);
+  }, [addConfession, type, caption, context?.user?.fid, imageUrl, router, promptId, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-      <div className="w-[67vw] bg-[#FCD9A8] rounded-lg p-6 relative">
+      <div className="w-[70vw] bg-[#FCD9A8] rounded-lg p-6 relative">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 hover:opacity-80"
@@ -197,9 +199,9 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
           <button
             onClick={handleSubmit}
             disabled={!context?.user?.fid || isUploading}
-            className={`${txcPearl.className} px-6 py-2 bg-[#B02A15] text-[#FCD9A8] rounded-full text-3xl whitespace-nowrap hover:bg-[#8f2211] disabled:opacity-50 uppercase`}
+            className={`${txcPearl.className} px-6 py-2 bg-[#B02A15] text-[#FCD9A8] rounded-full text-3xl hover:bg-[#8f2211] disabled:opacity-50 uppercase`}
           >
-            CONFESS FOR FREE
+            Confess for Free
           </button>
         </div>
       </div>

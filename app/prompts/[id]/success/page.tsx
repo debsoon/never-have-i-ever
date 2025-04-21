@@ -129,7 +129,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
               >
                 <button
                   className={cn(
-                    "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
+                    "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
                     "text-3xl hover:bg-[#8f2211] transition-colors",
                     "border-2 border-[#B02A15]",
                     txcPearl.className
@@ -152,13 +152,13 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
                   }
                 }}
                 className={cn(
-                  "inline-flex items-center justify-center whitespace-nowrap bg-transparent text-[#B02A15] px-4 py-2 rounded-full",
+                  "inline-flex items-center justify-center whitespace-nowrap bg-transparent text-[#B02A15] px-6 py-2 rounded-full",
                   "text-3xl hover:bg-[#FCD9A8] transition-colors",
                   "border-2 border-[#B02A15]",
                   txcPearl.className
                 )}
               >
-                SHARE TO GET MORE CONFESSIONS
+                GET OTHERS TO CONFESS
               </button>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
             <Link
               href="/prompts"
               className={cn(
-                "text-[#B02A15] text-xl font-bold flex items-center gap-2",
+                "text-[#B02A15] text-[22px] font-bold flex items-center gap-2",
                 "hover:opacity-80 transition-opacity",
                 neuzeitGrotesk.className
               )}
@@ -176,8 +176,8 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
               <Image
                 src="/images/icons/arrow-right-circle.png"
                 alt="Arrow right"
-                width={24}
-                height={24}
+                width={28}
+                height={28}
               />
             </Link>
           </div>

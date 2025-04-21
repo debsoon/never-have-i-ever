@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react'
 
 interface Confession {
-  fid: number
+  promptId: string
+  userFid: number
   type: 'have' | 'never'
   caption?: string
   imageUrl?: string
+  txHash?: string
 }
 
 async function addConfessionToAPI(confession: Confession) {
@@ -13,11 +15,19 @@ async function addConfessionToAPI(confession: Confession) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(confession),
+    body: JSON.stringify({
+      promptId: confession.promptId,
+      userFid: confession.userFid,
+      hasConfessed: confession.type === 'have',
+      imageUrl: confession.imageUrl,
+      caption: confession.caption,
+      txHash: confession.txHash
+    }),
   })
 
   if (!response.ok) {
-    throw new Error('Failed to add confession')
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to add confession')
   }
 
   return confession
