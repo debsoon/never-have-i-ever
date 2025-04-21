@@ -81,7 +81,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center text-center max-w-[500px]">
-            <div className={cn("text-[#B02A15] text-7xl leading-[1.1] mb-6", txcPearl.className)}>
+            <div className={cn("text-[#B02A15] text-6xl leading-[1.1] mb-6", txcPearl.className)}>
               YOU HAVE
               <br />
               CONFESSED
@@ -126,7 +126,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
             <Link
               href="/prompts"
               className={cn(
-                "text-[#B02A15] text-[22px] font-bold flex items-center gap-2",
+                "text-[#B02A15] text-xl font-bold flex items-center gap-2 whitespace-nowrap",
                 "hover:opacity-80 transition-opacity",
                 neuzeitGrotesk.className
               )}

@@ -226,12 +226,19 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
               CONFESS
             </button>
           </Link>
-          <Link href={prompt.hasResponded ? `/prompts/${prompt.id}/success` : `/prompts/${prompt.id}`}>
-            <button 
-              className={`bg-transparent text-[#B02A15] px-3 py-1 rounded-full
-                        text-3xl whitespace-nowrap hover:bg-[#FCD9A8] transition-colors
-                        border-2 border-[#B02A15] uppercase tracking-wider`}
-            >
+          <Link href={
+            prompt.status === 'ended' 
+              ? `/prompts/${prompt.id}/reveal`
+              : prompt.hasResponded 
+                ? `/prompts/${prompt.id}/success` 
+                : `/prompts/${prompt.id}`
+          }>
+            <button className={cn(
+              "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
+              "text-xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
+              "border-2 border-[#B02A15] uppercase tracking-wider",
+              txcPearl.className
+            )}>
               REVEAL
             </button>
           </Link>
@@ -549,7 +556,7 @@ export default function PromptsPage() {
                                 CONFESS
                               </button>
                             ) : (
-                              <Link href={`/prompts/${prompt.id}`}>
+                              <Link href={prompt.hasResponded ? `/prompts/${prompt.id}/success` : `/prompts/${prompt.id}`}>
                                 <button 
                                   className={cn(
                                     "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
@@ -561,14 +568,22 @@ export default function PromptsPage() {
                                 </button>
                               </Link>
                             )}
-                            <button className={cn(
-                              "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
-                              "text-xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
-                              "border-2 border-[#B02A15] uppercase tracking-wider",
-                              txcPearl.className
-                            )}>
-                              REVEAL
-                            </button>
+                            <Link href={
+                              prompt.status === 'ended' 
+                                ? `/prompts/${prompt.id}/reveal`
+                                : prompt.hasResponded 
+                                  ? `/prompts/${prompt.id}/success` 
+                                  : `/prompts/${prompt.id}`
+                            }>
+                              <button className={cn(
+                                "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
+                                "text-xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
+                                "border-2 border-[#B02A15] uppercase tracking-wider",
+                                txcPearl.className
+                              )}>
+                                REVEAL
+                              </button>
+                            </Link>
                           </div>
                         </div>
                       </div>

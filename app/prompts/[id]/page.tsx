@@ -169,7 +169,20 @@ export default function PromptPage({ params }: { params: { id: string } }) {
         className="object-cover"
       />
       <div className="min-h-screen border-viewport border-[#B02A15] relative">
-        <div className="min-h-screen bg-[#FCD9A8] flex flex-col items-center px-8 py-12">
+        <div className="min-h-screen bg-transparent flex flex-col items-center px-8 py-12">
+          <div className="w-full flex justify-end mb-4">
+            <button 
+              onClick={() => router.back()}
+              className="hover:opacity-80 transition-opacity"
+            >
+              <Image
+                src="/images/icons/close-circle-line.png"
+                alt="Close"
+                width={32}
+                height={32}
+              />
+            </button>
+          </div>
           <div className="text-center text-[#B02A15]">
             <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>
               TIME REMAINING

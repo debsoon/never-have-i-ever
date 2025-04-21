@@ -82,6 +82,19 @@ function ConfirmPromptContent() {
   return (
     <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-8">
+        <div className="w-full flex justify-end mb-4">
+          <button 
+            onClick={() => router.back()}
+            className="hover:opacity-80 transition-opacity"
+          >
+            <Image
+              src="/images/icons/close-circle-line.png"
+              alt="Close"
+              width={32}
+              height={32}
+            />
+          </button>
+        </div>
         <div className="w-full p-2 rounded-lg">
           <h2 className={`text-[#B02A15] text-xl mb-2 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
           <div className="w-full h-[1px] bg-[#B02A15] mb-4" />
