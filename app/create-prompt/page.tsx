@@ -36,13 +36,12 @@ export default function CreatePromptPage() {
         {/* Main Content */}
         <div className="w-full flex flex-col items-center gap-4">
           <h1 className={`text-[#B02A15] text-7xl text-center leading-none pt-8 ${txcPearl.className}`}>
-            NEVER HAVE<br />
-            I EVER...
+            <div className="whitespace-nowrap">NEVER HAVE</div>
+            <div>I EVER...</div>
           </h1>
 
-          <p className={`text-[#B02A15] text-xl text-center ${neuzeitGrotesk.className}`}>
-            PG, spicy, or straight-up unhinged... just<br />
-            make it worth $1 to find out who cracked.
+          <p className={`text-[#B02A15] text-xl text-center ${neuzeitGrotesk.className} max-w-md`}>
+            PG, spicy, or straight-up unhinged... just make it worth $1 to find out who cracked.
           </p>
 
           <div className="w-full">
@@ -81,7 +80,7 @@ export default function CreatePromptPage() {
             <Link 
               href="/instructions" 
               className={cn(
-                "flex items-center gap-2 text-[#B02A15] text-[22px] hover:opacity-80 transition-opacity",
+                "flex items-center gap-2 text-[#B02A15] text-[22px] hover:opacity-80 transition-opacity whitespace-nowrap",
                 neuzeitGrotesk.className
               )}
             >

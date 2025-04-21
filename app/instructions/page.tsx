@@ -13,7 +13,7 @@ export default function InstructionsPage() {
     >
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-2">
         <div className="p-8 rounded-lg w-full">
-          <h1 className={`text-[#B02A15] text-6xl mb-8 text-center whitespace-nowrap ${txcPearl.className}`}>
+          <h1 className={`text-[#B02A15] text-5xl mb-4 ${txcPearl.className} w-full text-center`}>
             HOW IT WORKS
           </h1>
           
