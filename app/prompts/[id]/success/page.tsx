@@ -14,6 +14,7 @@ import { LoadingState } from '@/app/components/LoadingState'
 
 async function loadPrompt(id: string): Promise<StoredPrompt | null> {
   try {
+    console.log('Success page: Loading prompt:', id)
     const res = await fetch(`/api/prompts/${id}`, {
       method: 'GET',
       headers: {
@@ -21,11 +22,14 @@ async function loadPrompt(id: string): Promise<StoredPrompt | null> {
       },
     })
     if (res.status === 404) {
+      console.log('Success page: Prompt not found')
       return null
     }
-    return await res.json()
+    const data = await res.json()
+    console.log('Success page: Received data:', data)
+    return data.prompt || null
   } catch (error) {
-    console.error('Error loading prompt:', error)
+    console.error('Success page: Error loading prompt:', error)
     return null
   }
 }
@@ -39,6 +43,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     async function fetchPrompt() {
       const data = await loadPrompt(params.id)
+      console.log('Success page: Setting prompt data:', data)
       setPrompt(data)
       setIsLoading(false)
     }
