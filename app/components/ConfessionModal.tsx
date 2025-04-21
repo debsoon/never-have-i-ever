@@ -199,7 +199,7 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
           <button
             onClick={handleSubmit}
             disabled={!context?.user?.fid || isUploading}
-            className={`${txcPearl.className} px-6 py-2 bg-[#B02A15] text-[#FCD9A8] rounded-full text-3xl hover:bg-[#8f2211] disabled:opacity-50 uppercase`}
+            className={`${txcPearl.className} px-6 py-2 bg-[#B02A15] text-[#FCD9A8] rounded-full text-3xl hover:bg-[#8f2211] disabled:opacity-50 uppercase whitespace-nowrap`}
           >
             Confess for Free
           </button>
