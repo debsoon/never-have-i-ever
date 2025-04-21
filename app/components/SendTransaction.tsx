@@ -11,14 +11,17 @@ const CONTRACT_ABI = [
   {
     name: 'createPrompt',
     type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'durationInHours', type: 'uint256' }],
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'content', type: 'string' },
+      { name: 'durationInHours', type: 'uint256' }
+    ],
     outputs: [{ name: '', type: 'uint256' }],
   },
   {
     name: 'payToReveal',
     type: 'function',
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
     inputs: [{ name: 'promptId', type: 'uint256' }],
     outputs: [],
   }
@@ -78,13 +81,29 @@ export function SendTransaction({
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName,
-        args: [BigInt(args[0])] as const
+        args: functionName === 'createPrompt' ? [args[0], BigInt(args[1])] : [BigInt(args[0])]
       })
 
+      console.log('Sending transaction with data:', data)
+      
       sendTransaction({
         to: contractAddress,
         data,
-        value: BigInt(630_000_000_000_000) // 0.00063 ETH = ~$1
+        value: BigInt(630_000_000_000_000) // Must match priceInWei in contract
+      }, {
+        onError: (error) => {
+          console.error('Transaction error:', error)
+          // Handle specific contract errors
+          if (error.message.includes('InsufficientPayment')) {
+            console.error('Payment amount must be exactly 0.00063 ETH')
+          } else if (error.message.includes('PromptNotFound')) {
+            console.error('Prompt not found')
+          } else if (error.message.includes('PromptExpired')) {
+            console.error('Prompt has expired')
+          } else if (error.message.includes('AlreadyRevealed')) {
+            console.error('You have already revealed this prompt')
+          }
+        }
       })
     } catch (err) {
       console.error('Error:', err)
