@@ -416,13 +416,13 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                     }
                   }}
                   className={cn(
-                    "bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full",
-                    "text-3xl hover:bg-[#8f2211] transition-colors",
+                    "bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
+                    "text-3xl whitespace-nowrap hover:bg-[#8f2211] transition-colors",
                     "border-2 border-[#B02A15] uppercase tracking-wider",
                     txcPearl.className
                   )}
                 >
-                  {isExpired ? 'CREATE NEW PROMPT' : 'SHARE TO GET MORE CONFESSIONS'}
+                  {isExpired ? 'CREATE NEW PROMPT' : 'GET OTHERS TO CONFESS'}
                 </button>
               </div>
 
@@ -435,7 +435,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                     neuzeitGrotesk.className
                   )}
                 >
-                  {isExpired ? 'Find something else to confess to' : 'CONFESS TO SOMETHING ELSE'}
+                  {isExpired ? 'Find something else to confess to' : 'Confess to something else'}
                 </Link>
               </div>
             </div>
@@ -495,7 +495,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   {prompt.content}
                 </div>
 
-                <div className="relative w-[120%] aspect-square mb-4 -mx-[10%]">
+                <div className="relative w-[140%] aspect-square mb-4 left-1/2 -translate-x-1/2">
                   <Image
                     src="/images/confessions.png"
                     alt="Burning confessions"
@@ -505,7 +505,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   />
                 </div>
 
-                <p className={cn("text-[#B02A15] text-3xl mb-6", txcPearl.className)}>
+                <p className={cn("text-[#B02A15] text-[28px] mb-6 leading-tight", txcPearl.className)}>
                   NO ONE PAID TO SEE WHO CAME CLEAN. ALL CONFESSIONS HAVE BEEN BURNED AND LOST FOREVER.
                 </p>
 
@@ -513,8 +513,8 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   <Link
                     href="/create-prompt"
                     className={cn(
-                      "inline-flex bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
-                      "text-4xl hover:bg-[#8f2211] transition-colors",
+                      "inline-flex bg-[#B02A15] text-[#FCD9A8] px-5 py-1.5 rounded-full",
+                      "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
                       "uppercase tracking-wider",
                       txcPearl.className
                     )}
@@ -525,8 +525,8 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   <Link
                     href="/prompts"
                     className={cn(
-                      "inline-flex bg-transparent text-[#B02A15] px-6 py-2 rounded-full",
-                      "text-4xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
+                      "inline-flex bg-transparent text-[#B02A15] px-5 py-1.5 rounded-full",
+                      "text-[28px] whitespace-nowrap hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
                       "border-2 border-[#B02A15] uppercase tracking-wider",
                       txcPearl.className
                     )}

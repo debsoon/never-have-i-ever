@@ -1,7 +1,6 @@
 import { useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
-import { useUser } from '../hooks/useUser';
 import { useConfessions } from '../../hooks/useConfessions';
 import { StoredConfession } from '@/app/lib/redis';
 import Image from 'next/image';
@@ -198,9 +197,9 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
           <button
             onClick={handleSubmit}
             disabled={!context?.user?.fid || isUploading}
-            className={`${txcPearl.className} px-6 py-2 bg-[#B02A15] text-[#FCD9A8] rounded-full text-3xl hover:bg-[#8f2211] disabled:opacity-50 uppercase`}
+            className={`${txcPearl.className} px-6 py-2 bg-[#B02A15] text-[#FCD9A8] rounded-full text-3xl whitespace-nowrap hover:bg-[#8f2211] disabled:opacity-50 uppercase`}
           >
-            Confess for Free
+            CONFESS FOR FREE
           </button>
         </div>
       </div>

@@ -184,10 +184,9 @@ export default function PromptPage({ params }: { params: { id: string } }) {
               </p>
             </div>
 
-            <div className={cn("text-[#B02A15] text-7xl leading-[1.1] mb-2", txcPearl.className)}>
-              NEVER HAVE
-              <br />
-              I EVER...
+            <div className={cn("text-[#B02A15] text-6xl leading-[1.1] mb-2", txcPearl.className)}>
+              <div className="whitespace-nowrap">NEVER HAVE</div>
+              <div className="whitespace-nowrap">I EVER...</div>
             </div>
 
             <div className={cn("text-[#B02A15] text-4xl mb-6", neuzeitGrotesk.className)}>
@@ -202,8 +201,8 @@ export default function PromptPage({ params }: { params: { id: string } }) {
                     setIsModalOpen(true)
                   }}
                   className={cn(
-                    "bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
-                    "text-3xl hover:bg-[#8f2211] transition-colors",
+                    "bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full",
+                    "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
                     "border-2 border-[#B02A15]",
                     txcPearl.className
                   )}
@@ -216,8 +215,8 @@ export default function PromptPage({ params }: { params: { id: string } }) {
                     setIsModalOpen(true)
                   }}
                   className={cn(
-                    "bg-transparent text-[#B02A15] px-6 py-2 rounded-full",
-                    "text-3xl hover:bg-[#FCD9A8] transition-colors",
+                    "bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full",
+                    "text-[28px] whitespace-nowrap hover:bg-[#FCD9A8] transition-colors",
                     "border-2 border-[#B02A15]",
                     txcPearl.className
                   )}
