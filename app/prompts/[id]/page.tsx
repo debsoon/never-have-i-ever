@@ -13,6 +13,7 @@ import { FarcasterUser } from '@/app/types'
 import { LoadingState } from '@/app/components/LoadingState'
 import { useRouter } from 'next/navigation'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
+import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 
 interface RedisPrompt {
   id: string
@@ -252,18 +253,17 @@ export default function PromptPage({ params }: { params: { id: string } }) {
 
           <div className="text-center">
             <div className={cn("text-[#B02A15] text-8xl mb-1", txcPearl.className)}>{prompt.totalConfessions}</div>
-            <div className={cn("text-[#B02A15] font-bold text-xl", neuzeitGrotesk.className)}>
+            <div className={cn("text-[#B02A15] font-bold text-xl mb-2", neuzeitGrotesk.className)}>
               CONFESSIONS AND COUNTING
             </div>
-            <Link
-              href={`/prompts/${prompt.id}/reveal`}
-              className={cn(
-                "text-[#B02A15] text-lg underline mt-0 inline-block",
-                neuzeitGrotesk.className
-              )}
-            >
-              Pay $1 to see who 'fessed up.
-            </Link>
+            <PayToRevealTransaction 
+              promptId={prompt.id}
+              onSuccess={() => {
+                router.push(`/prompts/${prompt.id}/reveal`)
+              }}
+              className="mt-2"
+              variant="link"
+            />
           </div>
         </div>
       </div>

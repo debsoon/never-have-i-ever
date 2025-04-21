@@ -5,4 +5,4 @@ export const USDC_CONTRACT = process.env.NEXT_PUBLIC_USDC_CONTRACT as `0x${strin
 export const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`
 
 // NeverHaveIEver contract address
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONFESS_CONTRACT as `0x${string}` 
+export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}` 
