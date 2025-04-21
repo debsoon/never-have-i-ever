@@ -72,11 +72,12 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
 
     try {
       const newConfession = {
-        userFid: context.user.fid,
         promptId,
-        type: type,
-        caption: type === 'have' ? (caption || undefined) : undefined,
-        imageUrl: type === 'have' ? (imageUrl || undefined) : undefined,
+        userFid: context.user.fid,
+        type,
+        imageUrl: type === 'have' ? imageUrl : undefined,
+        caption: type === 'have' ? caption : undefined,
+        timestamp: Date.now()
       };
       
       await addConfession(newConfession);

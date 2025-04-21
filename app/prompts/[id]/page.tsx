@@ -133,7 +133,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
           fill
           className="object-cover"
         />
-        <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+        <div className="min-h-screen border-viewport border-[#B02A15] relative">
           <div className="flex flex-col items-center justify-center h-full">
             <h1 className={cn("text-xl text-[#EAC898] mb-4", txcPearl.className)}>Prompt not found</h1>
             <Link 
@@ -164,7 +164,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
         fill
         className="object-cover"
       />
-      <div className="min-h-screen border-[24px] border-[#B02A15] relative">
+      <div className="min-h-screen border-viewport border-[#B02A15] relative">
         <div className="min-h-screen bg-[#FCD9A8] flex flex-col items-center px-8 py-12">
           <div className="text-center text-[#B02A15]">
             <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>

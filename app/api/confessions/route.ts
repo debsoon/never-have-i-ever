@@ -3,20 +3,19 @@ import { redisHelper } from '@/app/lib/redis'
 
 export async function POST(request: Request) {
   try {
-    const { promptId, userFid, type, imageUrl, caption, transactionHash } = await request.json()
+    const confession = await request.json()
 
-    if (!promptId || !userFid || !type || !transactionHash) {
+    if (!confession.promptId || !confession.userFid || !confession.type || !confession.timestamp) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     await redisHelper.addConfession({
-      promptId,
-      userFid,
-      type,
-      imageUrl,
-      caption,
-      transactionHash,
-      timestamp: Date.now()
+      promptId: confession.promptId,
+      userFid: confession.userFid,
+      type: confession.type,
+      imageUrl: confession.imageUrl,
+      caption: confession.caption,
+      timestamp: confession.timestamp
     })
 
     return NextResponse.json({ success: true })

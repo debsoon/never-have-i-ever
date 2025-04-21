@@ -6,7 +6,7 @@ interface Confession {
   type: 'have' | 'never'
   caption?: string
   imageUrl?: string
-  txHash?: string
+  timestamp: number
 }
 
 async function addConfessionToAPI(confession: Confession) {
@@ -15,14 +15,7 @@ async function addConfessionToAPI(confession: Confession) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      promptId: confession.promptId,
-      userFid: confession.userFid,
-      hasConfessed: confession.type === 'have',
-      imageUrl: confession.imageUrl,
-      caption: confession.caption,
-      txHash: confession.txHash
-    }),
+    body: JSON.stringify(confession),
   })
 
   if (!response.ok) {
