@@ -61,19 +61,33 @@ function ConfirmPromptContent() {
       setDebugMessage('⏳ Waiting for transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
-      setDebugMessage('📄 Fetching full transaction data...')
-      const tx = await publicClient.getTransaction({ hash: txHash })
+      setDebugMessage(`📦 Logs found: ${receipt.logs.length}`)
+      const log = receipt.logs.find(
+        (log) =>
+          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
+          log.topics[0] === '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d' // PromptCreated event signature
+      )
 
-      if (!tx.input) throw new Error('Transaction input not found.')
+      if (!log || !log.topics[1]) {
+        setDebugMessage('❌ PromptCreated event or promptId not found in logs.')
+        throw new Error('PromptCreated event or promptId not found')
+      }
+
+      setDebugMessage('🔍 Extracting promptId from event topic...')
+      const promptId = BigInt(log.topics[1]).toString()
+      setDebugMessage(`✅ Prompt ID: ${promptId}`)
 
       setDebugMessage('🧠 Decoding returned prompt ID...')
-      const promptId = decodeFunctionResult({
+      const promptIdDecoded = decodeFunctionResult({
         abi: CONTRACT_ABI,
         functionName: 'createPrompt',
         data: receipt.logs[0]?.data || '0x',
       }).toString()
 
-      setDebugMessage(`✅ Prompt ID: ${promptId}`)
+      if (promptId !== promptIdDecoded) {
+        setDebugMessage(`❌ Prompt ID mismatch: ${promptIdDecoded}`)
+        throw new Error('Prompt ID mismatch')
+      }
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
