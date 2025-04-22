@@ -4,7 +4,6 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData, decodeFunctionResult } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -14,19 +13,6 @@ import { base } from 'wagmi/chains'
 import { useEffect, Suspense, useState } from 'react'
 import { SendTransaction } from '@/app/components/SendTransaction'
 import { publicClient } from '@/app/lib/viemClient'
-
-const CONTRACT_ABI = [
-  {
-    name: 'createPrompt',
-    type: 'function',
-    stateMutability: 'payable',
-    inputs: [
-      { name: 'content', type: 'string' },
-      { name: 'durationInHours', type: 'uint256' }
-    ],
-    outputs: [{ name: '', type: 'uint256' }],
-  }
-] as const
 
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
@@ -61,19 +47,22 @@ function ConfirmPromptContent() {
       setDebugMessage('⏳ Waiting for transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
-      setDebugMessage('📄 Fetching full transaction data...')
-      const tx = await publicClient.getTransaction({ hash: txHash })
+      setDebugMessage(`📦 Logs found: ${receipt.logs.length}`)
+      const log = receipt.logs.find(
+        (log) =>
+          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
+          log.topics.length > 1
+      )
 
-      if (!tx.input) throw new Error('Transaction input not found.')
+      if (!log) {
+        setDebugMessage('❌ PromptCreated event not found in logs.')
+        return
+      }
 
-      setDebugMessage('🧠 Decoding returned prompt ID...')
-      const promptId = decodeFunctionResult({
-        abi: CONTRACT_ABI,
-        functionName: 'createPrompt',
-        data: receipt.logs[0]?.data || '0x',
-      }).toString()
-
-      setDebugMessage(`✅ Prompt ID: ${promptId}`)
+      const topicPromptId = log.topics[1]
+      if (!topicPromptId) throw new Error('Prompt ID topic not found')
+      const promptId = BigInt(topicPromptId).toString()
+      setDebugMessage(`✅ Prompt ID extracted from log topic: ${promptId}`)
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
