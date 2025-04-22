@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
+import { encodeFunctionData, decodeFunctionResult } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -13,6 +14,19 @@ import { base } from 'wagmi/chains'
 import { useEffect, Suspense, useState } from 'react'
 import { SendTransaction } from '@/app/components/SendTransaction'
 import { publicClient } from '@/app/lib/viemClient'
+
+const CONTRACT_ABI = [
+  {
+    name: 'createPrompt',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'content', type: 'string' },
+      { name: 'durationInHours', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  }
+] as const
 
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
@@ -44,30 +58,38 @@ function ConfirmPromptContent() {
 
   async function handleSuccess(txHash: `0x${string}`) {
     try {
-      setDebugMessage('⏳ Waiting for transaction receipt...')
+      setDebugMessage('⏳ Fetching transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+      setDebugMessage(`📦 Receipt status: ${receipt.status}`)
+      setDebugMessage(`📦 Number of logs: ${receipt.logs.length}`)
 
-      setDebugMessage(`📦 Logs found: ${receipt.logs.length}`)
+      // Find our contract's log
       const log = receipt.logs.find(
-        (log) =>
-          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
-          log.topics.length > 1
+        (log) => log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
       )
 
       if (!log) {
-        setDebugMessage('❌ PromptCreated event not found in logs.')
-        return
+        setDebugMessage('❌ No logs found from our contract')
+        throw new Error('No logs found from our contract')
       }
 
+      setDebugMessage(`📦 Found log with ${log.topics.length} topics`)
+      
+      // The prompt ID should be in the second topic (index 1)
       const topicPromptId = log.topics[1]
-      if (!topicPromptId) throw new Error('Prompt ID topic not found')
+      if (!topicPromptId) {
+        setDebugMessage('❌ No prompt ID found in topics')
+        throw new Error('No prompt ID found in topics')
+      }
+
+      // Convert the topic to a number (remove the 0x prefix and convert from hex)
       const promptId = BigInt(topicPromptId).toString()
-      setDebugMessage(`✅ Prompt ID extracted from log topic: ${promptId}`)
+      setDebugMessage(`✅ Extracted prompt ID: ${promptId}`)
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
       const { fid } = await userRes.json()
-      setDebugMessage(`✅ FID: ${fid}`)
+      setDebugMessage(`✅ FID fetched: ${fid}`)
 
       setDebugMessage('💾 Creating prompt in Redis...')
       await redisHelper.createPrompt({
