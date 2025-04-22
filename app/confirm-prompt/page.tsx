@@ -69,57 +69,65 @@ function ConfirmPromptContent() {
       setDebugMessage('Fetching transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
-      setDebugMessage('Searching for PromptCreated log...')
-      const log = receipt.logs.find(
-        (log) =>
-          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
-          log.topics[0] === PROMPT_CREATED_TOPIC
-      )
+      setDebugMessage('Inspecting logs for PromptCreated...')
+      for (const log of receipt.logs) {
+        if (log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()) {
+          if (log.topics[0] === PROMPT_CREATED_TOPIC) {
+            setDebugMessage('Found PromptCreated log, decoding...')
 
-      if (!log) {
-        throw new Error('PromptCreated event not found')
+            const { args } = decodeEventLog({
+              abi: [{
+                type: 'event',
+                name: 'PromptCreated',
+                inputs: [
+                  { name: 'promptId', type: 'uint256', indexed: true },
+                  { name: 'author', type: 'address', indexed: true },
+                  { name: 'content', type: 'string', indexed: false },
+                  { name: 'expiresAt', type: 'uint256', indexed: false },
+                ],
+              }],
+              data: log.data,
+              topics: log.topics,
+            })
+
+            if (!args) {
+              setDebugMessage('Failed to decode event args')
+              throw new Error('Failed to decode event args')
+            }
+
+            const promptId = args.promptId.toString()
+            setDebugMessage(`Prompt ID decoded: ${promptId}`)
+
+            setDebugMessage('Fetching user FID...')
+            const userRes = await fetch(`/api/users/wallet/${address}`)
+            const { fid } = await userRes.json()
+            setDebugMessage(`FID: ${fid}`)
+
+            setDebugMessage('Creating prompt in Redis...')
+            await redisHelper.createPrompt({
+              id: promptId,
+              content: prompt as string,
+              authorFid: fid,
+              createdAt: Date.now(),
+              expiresAt: Date.now() + 86400 * 1000,
+            })
+            setDebugMessage('Prompt successfully saved to Redis')
+
+            await sendNotification({
+              title: 'Prompt Submitted!',
+              body: `Your "Never Have I Ever" prompt has been posted.`,
+            })
+
+            router.push(`/prompts/${promptId}`)
+            return
+          } else {
+            setDebugMessage(`Log from contract matched, but topic[0] was ${log.topics?.[0]?.slice(0, 10) ?? 'missing'}...`)
+          }
+        }
       }
 
-      setDebugMessage('Decoding event log...')
-      const { args } = decodeEventLog({
-        abi: [{
-          type: 'event',
-          name: 'PromptCreated',
-          inputs: [
-            { name: 'promptId', type: 'uint256', indexed: true },
-            { name: 'author', type: 'address', indexed: true },
-            { name: 'content', type: 'string', indexed: false },
-            { name: 'expiresAt', type: 'uint256', indexed: false },
-          ],
-        }],
-        data: log.data,
-        topics: log.topics,
-      })
-
-      const promptId = args?.promptId.toString()
-      setDebugMessage(`Prompt ID decoded: ${promptId}`)
-
-      setDebugMessage('Fetching user FID...')
-      const userRes = await fetch(`/api/users/wallet/${address}`)
-      const { fid } = await userRes.json()
-      setDebugMessage(`FID: ${fid}`)
-
-      setDebugMessage('Creating prompt in Redis...')
-      await redisHelper.createPrompt({
-        id: promptId,
-        content: prompt as string,
-        authorFid: fid,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + 86400 * 1000,
-      })
-      setDebugMessage('Prompt successfully saved to Redis')
-
-      await sendNotification({
-        title: 'Prompt Submitted!',
-        body: `Your "Never Have I Ever" prompt has been posted.`,
-      })
-
-      router.push(`/prompts/${promptId}`)
+      setDebugMessage('No matching PromptCreated log found in this receipt.')
+      throw new Error('PromptCreated event not found')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setDebugMessage(`Error: ${errorMessage}`)
