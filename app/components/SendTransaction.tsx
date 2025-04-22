@@ -6,6 +6,7 @@ import { type BaseError } from 'viem'
 import { neuzeitGrotesk, txcPearl } from '@/utils/fonts'
 import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { base } from 'wagmi/chains'
 
 const CONTRACT_ABI = [
   {
@@ -68,6 +69,7 @@ export function SendTransaction({
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
+    chainId: base.id
   })
 
   // Function to prepare and send transaction
@@ -89,7 +91,8 @@ export function SendTransaction({
       await sendTransaction({
         to: contractAddress,
         data,
-        value: BigInt(630_000_000_000_000) // Must match priceInWei in contract
+        value: BigInt(630_000_000_000_000), // Must match priceInWei in contract
+        chainId: base.id
       })
     } catch (err) {
       console.error('Error:', err)
