@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData, parseAbiItem, decodeEventLog } from 'viem'
+import { encodeFunctionData, parseAbiItem, decodeEventLog, keccak256, toBytes } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -30,6 +30,10 @@ const CONTRACT_ABI = [
 
 const PROMPT_CREATED_EVENT = parseAbiItem(
   'event PromptCreated(uint256 indexed promptId, address indexed author, string content, uint256 expiresAt)'
+)
+
+const PROMPT_CREATED_TOPIC = keccak256(
+  toBytes('PromptCreated(uint256,address,string,uint256)')
 )
 
 function ConfirmPromptContent() {
@@ -66,8 +70,10 @@ function ConfirmPromptContent() {
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
       setDebugMessage('Searching for PromptCreated log...')
-      const log = receipt.logs.find((log) =>
-        log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
+      const log = receipt.logs.find(
+        (log) =>
+          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
+          log.topics[0] === PROMPT_CREATED_TOPIC
       )
 
       if (!log) {
