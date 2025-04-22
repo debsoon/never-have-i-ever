@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData, parseAbiItem, decodeEventLog, keccak256, toBytes } from 'viem'
+import { encodeFunctionData, parseAbiItem, decodeEventLog } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -32,9 +32,8 @@ const PROMPT_CREATED_EVENT = parseAbiItem(
   'event PromptCreated(uint256 indexed promptId, address indexed author, string content, uint256 expiresAt)'
 )
 
-const PROMPT_CREATED_TOPIC = keccak256(
+const PROMPT_CREATED_TOPIC = 
   '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d'
-)
 
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
@@ -73,9 +72,8 @@ function ConfirmPromptContent() {
       setDebugMessage(`📦 Receipt logs:\n${JSON.stringify(receipt.logs, null, 2)}`)
   
       // Compute topic hash dynamically (make sure it matches your event)
-      const topicHash = keccak256(
-        toBytes('PromptCreated(uint256,address,string,uint256)')
-      )
+      const topicHash = '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d'
+      
   
       const log = receipt.logs.find(
         (log) =>
