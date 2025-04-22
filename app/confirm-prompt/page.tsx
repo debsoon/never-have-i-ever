@@ -11,16 +11,27 @@ import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
 import { CONTRACT_ADDRESS } from '@/app/constants'
 import { base } from 'wagmi/chains'
-import { useEffect, Suspense, useState, useRef } from 'react'
+import { useEffect, Suspense, useState } from 'react'
 import { SendTransaction } from '@/app/components/SendTransaction'
 import { publicClient } from '@/app/lib/viemClient'
 
-// Event ABI
+const CONTRACT_ABI = [
+  {
+    name: 'createPrompt',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'content', type: 'string' },
+      { name: 'durationInHours', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  }
+] as const
+
 const PROMPT_CREATED_EVENT = parseAbiItem(
   'event PromptCreated(uint256 indexed promptId, address indexed author, string content, uint256 expiresAt)'
 )
 
-// Dynamically computed topic hash (correct!)
 const PROMPT_CREATED_TOPIC = keccak256(
   toBytes('PromptCreated(uint256,address,string,uint256)')
 )
@@ -34,7 +45,6 @@ function ConfirmPromptContent() {
   const sendNotification = useNotification()
   const router = useRouter()
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
-  const hasHandledRef = useRef(false)
 
   const isCorrectChain = chainId === base.id
 
@@ -45,15 +55,9 @@ function ConfirmPromptContent() {
     sendTransaction
   } = useSendTransaction()
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
-
-  // 🔁 Only trigger handleSuccess once
-  useEffect(() => {
-    if (isConfirmed && hash && !hasHandledRef.current) {
-      hasHandledRef.current = true
-      handleSuccess(hash)
-    }
-  }, [isConfirmed, hash])
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  })
 
   if (!prompt) {
     router.push('/create-prompt')
@@ -65,13 +69,15 @@ function ConfirmPromptContent() {
       setDebugMessage('⏳ Fetching transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
-      const matchingLog = receipt.logs.find(
+      setDebugMessage(`📦 Receipt logs:\n${JSON.stringify(receipt.logs, null, 2)}`)
+
+      const log = receipt.logs.find(
         (log) =>
           log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
           log.topics[0] === PROMPT_CREATED_TOPIC
       )
 
-      if (!matchingLog) {
+      if (!log) {
         setDebugMessage('❌ PromptCreated event not found in logs.')
         return
       }
@@ -80,21 +86,24 @@ function ConfirmPromptContent() {
 
       const { args } = decodeEventLog({
         abi: [PROMPT_CREATED_EVENT],
-        data: matchingLog.data,
-        topics: matchingLog.topics,
+        data: log.data,
+        topics: log.topics,
       })
 
       if (!args) {
+        setDebugMessage('❌ Failed to decode event args')
         throw new Error('Failed to decode event args')
       }
 
       const promptId = args.promptId.toString()
       setDebugMessage(`✅ Prompt ID decoded: ${promptId}`)
 
+      setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
       const { fid } = await userRes.json()
       setDebugMessage(`✅ FID fetched: ${fid}`)
 
+      setDebugMessage('💾 Creating prompt in Redis...')
       await redisHelper.createPrompt({
         id: promptId,
         content: prompt as string,
@@ -171,7 +180,7 @@ function ConfirmPromptContent() {
           )}
 
           {debugMessage && (
-            <p className="text-[#B02A15] text-sm text-center mt-4 whitespace-pre-wrap">
+            <p className="text-[#B02A15] text-sm text-center mt-4">
               Debug: {debugMessage}
             </p>
           )}
