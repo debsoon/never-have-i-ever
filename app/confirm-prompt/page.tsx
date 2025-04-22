@@ -109,23 +109,33 @@ function ConfirmPromptContent() {
       }
 
       setDebugMessage('🔍 Extracting promptId from event topic...')
-      const extractedPromptId = BigInt(log.topics[1]).toString()
+      // Convert the hex topic to decimal - this matches what we see in Basescan
+      const extractedPromptId = parseInt(log.topics[1], 16).toString()
       setPromptId(extractedPromptId)
-      setDebugMessage(`✅ Prompt ID: ${extractedPromptId}`)
+      setDebugMessage(`✅ Prompt ID: ${extractedPromptId} (from hex: ${log.topics[1]})`)
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
+      if (!userRes.ok) {
+        throw new Error(`Failed to fetch FID: ${userRes.status}`)
+      }
       const { fid } = await userRes.json()
       setDebugMessage(`✅ FID: ${fid}`)
 
       setDebugMessage('💾 Creating prompt in Redis...')
-      await redisHelper.createPrompt({
-        id: extractedPromptId,
-        content: prompt as string,
-        authorFid: fid,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + 86400 * 1000,
-      })
+      try {
+        await redisHelper.createPrompt({
+          id: extractedPromptId,
+          content: prompt as string,
+          authorFid: fid,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 86400 * 1000,
+        })
+        setDebugMessage('✅ Successfully saved to Redis!')
+      } catch (redisError) {
+        setDebugMessage(`❌ Redis Error: ${redisError instanceof Error ? redisError.message : 'Unknown Redis error'}`)
+        throw redisError
+      }
 
       setDebugMessage('✅ Success! Redirecting in 3 seconds...')
       await sendNotification({
