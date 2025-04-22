@@ -24,6 +24,20 @@ const CONTRACT_ABI = [
   }
 ] as const
 
+function TransactionWaiter({ hash, onSuccess }: { hash: `0x${string}`; onSuccess: (hash: `0x${string}`) => Promise<void> }) {
+  const { data: receipt } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  useEffect(() => {
+    if (receipt) {
+      onSuccess(hash)
+    }
+  }, [receipt, hash, onSuccess])
+
+  return null
+}
+
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
   const prompt = searchParams.get('prompt')
@@ -53,23 +67,11 @@ function ConfirmPromptContent() {
 
   async function handleSuccess(hash: `0x${string}`) {
     try {
-      // Wait for transaction to be confirmed
-      const { data: receipt } = await useWaitForTransactionReceipt({
-        hash,
-      })
-
-      if (!receipt) {
-        throw new Error('Transaction receipt not found')
-      }
-
-      // Get the prompt ID from the transaction receipt
-      const promptId = receipt.logs[0].topics[1]?.toString() || hash
-
       const userRes = await fetch(`/api/users/wallet/${address}`)
       const { fid } = await userRes.json()
 
       await redisHelper.createPrompt({
-        id: promptId,
+        id: hash,
         content: prompt as string,
         authorFid: fid,
         createdAt: Date.now(),
@@ -81,7 +83,7 @@ function ConfirmPromptContent() {
         body: `Your "Never Have I Ever" prompt has been posted.`,
       })
 
-      router.push(`/prompts/${promptId}`)
+      router.push(`/prompts/${hash}`)
     } catch (err) {
       console.error(err)
       await sendNotification({
