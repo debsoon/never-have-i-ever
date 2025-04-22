@@ -33,7 +33,7 @@ const PROMPT_CREATED_EVENT = parseAbiItem(
 )
 
 const PROMPT_CREATED_TOPIC = keccak256(
-  '0x36f8cd1e9406ca3c8f9631a2448af00ecedd411240594294362976d5beffa65d'
+  '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d'
 )
 
 function ConfirmPromptContent() {
