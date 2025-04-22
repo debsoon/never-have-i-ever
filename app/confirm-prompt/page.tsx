@@ -37,6 +37,7 @@ function ConfirmPromptContent() {
   const sendNotification = useNotification()
   const router = useRouter()
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const isCorrectChain = chainId === base.id
 
@@ -57,15 +58,35 @@ function ConfirmPromptContent() {
   }
 
   async function handleSuccess(txHash: `0x${string}`) {
-    try {
-      setDebugMessage('⏳ Waiting for transaction receipt...')
-      const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+    if (isProcessing) {
+      setDebugMessage('⏳ Already processing transaction...')
+      return
+    }
 
-      setDebugMessage(`📦 Logs found: ${receipt.logs.length}`)
+    try {
+      setIsProcessing(true)
+      setDebugMessage('⏳ Waiting for transaction receipt...')
+      
+      // Add a small delay before fetching receipt
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+      
+      if (!receipt) {
+        setDebugMessage('❌ No receipt found. Transaction may still be pending.')
+        return
+      }
+
+      setDebugMessage(`📦 Logs found: ${receipt.logs.length}\n📄 Receipt status: ${receipt.status}`)
+      
+      if (receipt.status === 'reverted') {
+        throw new Error('Transaction reverted')
+      }
+
       const log = receipt.logs.find(
         (log) =>
           log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
-          log.topics[0] === '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d' // PromptCreated event signature
+          log.topics[0] === '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d'
       )
 
       if (!log || !log.topics[1]) {
@@ -76,18 +97,6 @@ function ConfirmPromptContent() {
       setDebugMessage('🔍 Extracting promptId from event topic...')
       const promptId = BigInt(log.topics[1]).toString()
       setDebugMessage(`✅ Prompt ID: ${promptId}`)
-
-      setDebugMessage('🧠 Decoding returned prompt ID...')
-      const promptIdDecoded = decodeFunctionResult({
-        abi: CONTRACT_ABI,
-        functionName: 'createPrompt',
-        data: receipt.logs[0]?.data || '0x',
-      }).toString()
-
-      if (promptId !== promptIdDecoded) {
-        setDebugMessage(`❌ Prompt ID mismatch: ${promptIdDecoded}`)
-        throw new Error('Prompt ID mismatch')
-      }
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
@@ -112,12 +121,14 @@ function ConfirmPromptContent() {
       router.push(`/prompts/${promptId}`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setDebugMessage(`🔥 Error: ${errorMessage}`)
+      setDebugMessage(`🔥 Error Details:\nMessage: ${errorMessage}\nStack: ${err instanceof Error ? err.stack : 'No stack trace'}\n`)
       console.error('Error in handleSuccess:', err)
       await sendNotification({
         title: 'Error',
         body: 'Failed to store prompt. Please try again.',
       })
+    } finally {
+      setIsProcessing(false)
     }
   }
 
