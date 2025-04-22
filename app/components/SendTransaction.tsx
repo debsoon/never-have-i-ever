@@ -16,16 +16,6 @@ const CONTRACT_ABI = [
       { name: 'durationInHours', type: 'uint256' }
     ],
     outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    name: 'PromptCreated',
-    type: 'event',
-    inputs: [
-      { name: 'promptId', type: 'uint256', indexed: true },
-      { name: 'author', type: 'address', indexed: true },
-      { name: 'content', type: 'string', indexed: false },
-      { name: 'expiresAt', type: 'uint256', indexed: false }
-    ]
   }
 ] as const
 
