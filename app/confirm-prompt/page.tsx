@@ -74,6 +74,7 @@ function ConfirmPromptContent() {
       }
 
       setDebugMessage(`📦 Found log with ${log.topics.length} topics`)
+      setDebugMessage(`📦 Topics: ${JSON.stringify(log.topics, null, 2)}`)
       
       // The prompt ID should be in the second topic (index 1)
       const topicPromptId = log.topics[1]
@@ -82,7 +83,8 @@ function ConfirmPromptContent() {
         throw new Error('No prompt ID found in topics')
       }
 
-      // Convert the topic to a number (remove the 0x prefix and convert from hex)
+      setDebugMessage(`📦 Raw topic promptId: ${topicPromptId}`)
+      // Convert the topic to a number
       const promptId = BigInt(topicPromptId).toString()
       setDebugMessage(`✅ Extracted prompt ID: ${promptId}`)
 
