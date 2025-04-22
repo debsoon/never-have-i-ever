@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData, parseAbiItem, decodeEventLog, keccak256, toBytes } from 'viem'
+import { encodeFunctionData, decodeFunctionResult } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -28,14 +28,6 @@ const CONTRACT_ABI = [
   }
 ] as const
 
-const PROMPT_CREATED_EVENT = parseAbiItem(
-  'event PromptCreated(uint256 indexed promptId, address indexed author, string content, uint256 expiresAt)'
-)
-
-const PROMPT_CREATED_TOPIC = keccak256(
-  toBytes('PromptCreated(uint256,address,string,uint256)')
-)
-
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
   const prompt = searchParams.get('prompt')
@@ -49,14 +41,14 @@ function ConfirmPromptContent() {
   const isCorrectChain = chainId === base.id
 
   const {
-    data: hash,
+    data: txHash,
     error,
     isPending,
     sendTransaction
   } = useSendTransaction()
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
+    hash: txHash,
   })
 
   if (!prompt) {
@@ -66,46 +58,27 @@ function ConfirmPromptContent() {
 
   async function handleSuccess(txHash: `0x${string}`) {
     try {
-      setDebugMessage('⏳ Fetching transaction receipt...')
+      setDebugMessage('⏳ Waiting for transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
-      setDebugMessage(`📦 Receipt logs:\n${JSON.stringify(receipt.logs, null, 2)}`)
+      setDebugMessage('📄 Fetching full transaction data...')
+      const tx = await publicClient.getTransaction({ hash: txHash })
 
-      const log = receipt.logs.find(
-        (log) =>
-          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
-          log.topics[0] === PROMPT_CREATED_TOPIC
-      )
+      if (!tx.input) throw new Error('Transaction input not found.')
 
-      if (!log) {
-        setDebugMessage('❌ PromptCreated event not found in logs.')
-        return
-      }
+      setDebugMessage('🧠 Decoding returned prompt ID...')
+      const promptId = decodeFunctionResult({
+        abi: CONTRACT_ABI,
+        functionName: 'createPrompt',
+        data: receipt.logs[0]?.data || '0x',
+      }).toString()
 
-      setDebugMessage('✅ Found log. Attempting to decode...')
-
-      const { args } = decodeEventLog({
-        abi: [PROMPT_CREATED_EVENT],
-        data: log.data,
-        topics: log.topics,
-      })
-      
-      if (!args || typeof args.promptId !== 'bigint') {
-        setDebugMessage(`❌ Invalid or missing promptId: ${JSON.stringify(args)}`)
-        throw new Error('Invalid promptId format')
-      }
-
-      setDebugMessage(`🧪 Decoding log with topics: ${JSON.stringify(log.topics)}`)
-      
-      const promptId = args.promptId.toString()
-      setDebugMessage(`✅ Prompt ID decoded: ${promptId}`)
-
-      setDebugMessage(`📏 Type of promptId: ${typeof args.promptId}`)
+      setDebugMessage(`✅ Prompt ID: ${promptId}`)
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
       const { fid } = await userRes.json()
-      setDebugMessage(`✅ FID fetched: ${fid}`)
+      setDebugMessage(`✅ FID: ${fid}`)
 
       setDebugMessage('💾 Creating prompt in Redis...')
       await redisHelper.createPrompt({
@@ -184,7 +157,7 @@ function ConfirmPromptContent() {
           )}
 
           {debugMessage && (
-            <p className="text-[#B02A15] text-sm text-center mt-4">
+            <p className="text-[#B02A15] text-sm text-center mt-4 whitespace-pre-wrap">
               Debug: {debugMessage}
             </p>
           )}
