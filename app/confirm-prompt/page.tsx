@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
 import { CONTRACT_ADDRESS } from '@/app/constants'
 import { base } from 'wagmi/chains'
-import { useEffect, Suspense } from 'react'
+import { useEffect, Suspense, useState } from 'react'
 import { SendTransaction } from '@/app/components/SendTransaction'
 import { publicClient } from '@/app/lib/viemClient'
 
@@ -40,6 +40,7 @@ function ConfirmPromptContent() {
   const chainId = useChainId()
   const sendNotification = useNotification()
   const router = useRouter()
+  const [debugMessage, setDebugMessage] = useState<string | null>(null)
 
   const isCorrectChain = chainId === base.id
 
@@ -61,8 +62,10 @@ function ConfirmPromptContent() {
 
   async function handleSuccess(txHash: `0x${string}`) {
     try {
+      setDebugMessage('Fetching transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
+      setDebugMessage('Searching for PromptCreated log...')
       const log = receipt.logs.find((log) =>
         log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
       )
@@ -71,6 +74,7 @@ function ConfirmPromptContent() {
         throw new Error('PromptCreated event not found')
       }
 
+      setDebugMessage('Decoding event log...')
       const { args } = decodeEventLog({
         abi: [PROMPT_CREATED_EVENT],
         data: log.data,
@@ -78,10 +82,14 @@ function ConfirmPromptContent() {
       })
 
       const promptId = args?.promptId.toString()
+      setDebugMessage(`Prompt ID decoded: ${promptId}`)
 
+      setDebugMessage('Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
       const { fid } = await userRes.json()
+      setDebugMessage(`FID: ${fid}`)
 
+      setDebugMessage('Creating prompt in Redis...')
       await redisHelper.createPrompt({
         id: promptId,
         content: prompt as string,
@@ -89,6 +97,7 @@ function ConfirmPromptContent() {
         createdAt: Date.now(),
         expiresAt: Date.now() + 86400 * 1000,
       })
+      setDebugMessage('Prompt successfully saved to Redis')
 
       await sendNotification({
         title: 'Prompt Submitted!',
@@ -97,6 +106,8 @@ function ConfirmPromptContent() {
 
       router.push(`/prompts/${promptId}`)
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setDebugMessage(`Error: ${errorMessage}`)
       console.error('Error in handleSuccess:', err)
       await sendNotification({
         title: 'Error',
@@ -135,11 +146,30 @@ function ConfirmPromptContent() {
             </div>
           </div>
 
-          <SendTransaction 
-            contractAddress={CONTRACT_ADDRESS as `0x${string}`}
-            onSuccess={handleSuccess}
-            prompt={prompt as string}
-          />
+          {!isConnected ? (
+            <button
+              onClick={() => connect({ connector: connectors[0] })}
+              className="w-full bg-[#B02A15] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#8A1F0F] transition-colors"
+            >
+              Connect Wallet
+            </button>
+          ) : !isCorrectChain ? (
+            <div className="text-center text-[#B02A15]">
+              Please switch to Base network
+            </div>
+          ) : (
+            <SendTransaction
+              prompt={prompt as string}
+              onSuccess={handleSuccess}
+              contractAddress={CONTRACT_ADDRESS as `0x${string}`}
+            />
+          )}
+
+          {debugMessage && (
+            <p className="text-[#B02A15] text-sm text-center mt-4">
+              Debug: {debugMessage}
+            </p>
+          )}
         </div>
       </div>
     </main>
