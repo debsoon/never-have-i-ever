@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData } from 'viem'
+import { encodeFunctionData, parseAbiItem, decodeEventLog } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -13,16 +13,24 @@ import { CONTRACT_ADDRESS } from '@/app/constants'
 import { base } from 'wagmi/chains'
 import { useEffect, Suspense } from 'react'
 import { SendTransaction } from '@/app/components/SendTransaction'
+import { publicClient } from '@/app/lib/viemClient'
 
 const CONTRACT_ABI = [
   {
     name: 'createPrompt',
     type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'durationInSeconds', type: 'uint256' }],
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'content', type: 'string' },
+      { name: 'durationInHours', type: 'uint256' }
+    ],
     outputs: [{ name: '', type: 'uint256' }],
   }
 ] as const
+
+const PROMPT_CREATED_EVENT = parseAbiItem(
+  'event PromptCreated(uint256 indexed promptId, address indexed author, string content, uint256 expiresAt)'
+)
 
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
@@ -51,13 +59,31 @@ function ConfirmPromptContent() {
     return null
   }
 
-  async function handleSuccess(hash: `0x${string}`) {
+  async function handleSuccess(txHash: `0x${string}`) {
     try {
+      const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+
+      const log = receipt.logs.find((log) =>
+        log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
+      )
+
+      if (!log) {
+        throw new Error('PromptCreated event not found')
+      }
+
+      const { args } = decodeEventLog({
+        abi: [PROMPT_CREATED_EVENT],
+        data: log.data,
+        topics: log.topics,
+      })
+
+      const promptId = args?.promptId.toString()
+
       const userRes = await fetch(`/api/users/wallet/${address}`)
       const { fid } = await userRes.json()
 
       await redisHelper.createPrompt({
-        id: hash,
+        id: promptId,
         content: prompt as string,
         authorFid: fid,
         createdAt: Date.now(),
@@ -69,9 +95,9 @@ function ConfirmPromptContent() {
         body: `Your "Never Have I Ever" prompt has been posted.`,
       })
 
-      router.push(`/prompts/${hash}`)
+      router.push(`/prompts/${promptId}`)
     } catch (err) {
-      console.error(err)
+      console.error('Error in handleSuccess:', err)
       await sendNotification({
         title: 'Error',
         body: 'Failed to store prompt. Please try again.',
