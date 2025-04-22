@@ -24,20 +24,6 @@ const CONTRACT_ABI = [
   }
 ] as const
 
-function TransactionWaiter({ hash, onSuccess }: { hash: `0x${string}`; onSuccess: (hash: `0x${string}`) => Promise<void> }) {
-  const { data: receipt } = useWaitForTransactionReceipt({
-    hash,
-  })
-
-  useEffect(() => {
-    if (receipt) {
-      onSuccess(hash)
-    }
-  }, [receipt, hash, onSuccess])
-
-  return null
-}
-
 function ConfirmPromptContent() {
   const searchParams = useSearchParams()
   const prompt = searchParams.get('prompt')
@@ -126,6 +112,7 @@ function ConfirmPromptContent() {
           <SendTransaction 
             contractAddress={CONTRACT_ADDRESS as `0x${string}`}
             onSuccess={handleSuccess}
+            prompt={prompt as string}
           />
         </div>
       </div>

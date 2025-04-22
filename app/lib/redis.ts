@@ -18,6 +18,7 @@ export interface StoredPrompt {
   createdAt: number
   expiresAt: number
   totalConfessions: number
+  totalReveals: number
 }
 
 export interface StoredConfession {
@@ -44,8 +45,8 @@ export interface PaymentStatus {
 
 // Storage interface for both Redis and LocalStorage
 interface StorageInterface {
-  createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt>
-  getPrompt(promptId: string): Promise<StoredPrompt | null>
+  createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions' | 'totalReveals'>): Promise<StoredPrompt>
+  getPrompt(id: string): Promise<StoredPrompt | null>
   getRecentPrompts(limit?: number): Promise<string[]>
   addConfession(confession: StoredConfession): Promise<void>
   getConfession(promptId: string, userFid: number): Promise<StoredConfession | null>
@@ -74,11 +75,12 @@ class LocalStorageHelper implements StorageInterface {
     localStorage.removeItem(key)
   }
 
-  async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
+  async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions' | 'totalReveals'>): Promise<StoredPrompt> {
     const key = KEYS.PROMPT(prompt.id)
     const storedPrompt: StoredPrompt = {
       ...prompt,
-      totalConfessions: 0
+      totalConfessions: 0,
+      totalReveals: 0
     }
     this.setItem(key, storedPrompt)
     
@@ -154,21 +156,53 @@ class LocalStorageHelper implements StorageInterface {
 
 // Redis storage adapter
 class RedisStorageAdapter implements StorageInterface {
-  constructor(private redis: Redis) {
-    console.log('Redis: Initializing RedisStorageAdapter with URL:', process.env.UPSTASH_REDIS_REST_URL)
+  private redis: Redis
+  private promptPrefix = 'prompt:'
+  private promptCountPrefix = 'prompt:count:'
+  private authorPromptsPrefix = 'author:prompts:'
+  private allPromptsKey = 'all:prompts'
+
+  constructor(redis: Redis) {
+    this.redis = redis
   }
 
-  async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
-    const key = KEYS.PROMPT(prompt.id)
+  async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions' | 'totalReveals'>): Promise<StoredPrompt> {
+    // Get the next prompt number for this Farcaster ID
+    const promptCountKey = `${this.promptCountPrefix}:${prompt.authorFid}`
+    const promptCount = await this.redis.incr(promptCountKey)
+    
+    // Create the new prompt ID using Farcaster ID and prompt number
+    const newPromptId = `${prompt.authorFid}-${promptCount}`
+    
+    // Create the prompt with the new ID
+    const promptKey = `${this.promptPrefix}:${newPromptId}`
     const storedPrompt: StoredPrompt = {
       ...prompt,
-      totalConfessions: 0
+      id: newPromptId,
+      totalConfessions: 0,
+      totalReveals: 0
     }
-    await this.redis.set(key, storedPrompt)
-    await this.redis.zadd(KEYS.PROMPT_LIST, { 
-      score: prompt.createdAt, 
-      member: prompt.id 
-    })
+    
+    // Convert to Record<string, unknown> for hset
+    const promptData: Record<string, unknown> = {
+      id: storedPrompt.id,
+      content: storedPrompt.content,
+      authorFid: storedPrompt.authorFid,
+      createdAt: storedPrompt.createdAt,
+      expiresAt: storedPrompt.expiresAt,
+      totalConfessions: storedPrompt.totalConfessions,
+      totalReveals: storedPrompt.totalReveals
+    }
+    
+    await this.redis.hset(promptKey, promptData)
+
+    // Add to author's prompts list
+    const authorPromptsKey = `${this.authorPromptsPrefix}:${prompt.authorFid}`
+    await this.redis.sadd(authorPromptsKey, newPromptId)
+
+    // Add to all prompts list
+    await this.redis.sadd(this.allPromptsKey, newPromptId)
+
     return storedPrompt
   }
 
@@ -255,8 +289,14 @@ class RedisStorageAdapter implements StorageInterface {
 // Helper functions for data operations
 export class RedisHelperClass {
   private storage: StorageInterface
+  private redis: Redis
+  private promptPrefix = 'prompt:'
+  private promptCountPrefix = 'prompt:count:'
+  private authorPromptsPrefix = 'author:prompts:'
+  private allPromptsKey = 'all:prompts'
 
-  constructor() {
+  constructor(redis: Redis) {
+    this.redis = redis
     console.log('Redis: Initializing RedisHelperClass')
     console.log('Redis: Checking environment variables...')
     console.log('Redis: UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set')
@@ -264,10 +304,7 @@ export class RedisHelperClass {
     
     if (typeof window === 'undefined' && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
       console.log('Redis: Using RedisStorageAdapter')
-      this.storage = new RedisStorageAdapter(new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN
-      }))
+      this.storage = new RedisStorageAdapter(redis)
     } else {
       console.log('Redis: Using LocalStorageHelper')
       this.storage = new LocalStorageHelper()
@@ -275,8 +312,32 @@ export class RedisHelperClass {
   }
 
   // Public methods that delegate to storage
-  async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
-    return this.storage.createPrompt(prompt)
+  async createPrompt(prompt: StoredPrompt): Promise<void> {
+    // Get the next prompt number for this Farcaster ID
+    const promptCountKey = `${this.promptCountPrefix}:${prompt.authorFid}`
+    const promptCount = await this.redis.incr(promptCountKey)
+    
+    // Create the new prompt ID using Farcaster ID and prompt number
+    const newPromptId = `${prompt.authorFid}-${promptCount}`
+    
+    // Create the prompt with the new ID
+    const promptKey = `${this.promptPrefix}:${newPromptId}`
+    await this.redis.hset(promptKey, {
+      id: newPromptId,
+      content: prompt.content,
+      authorFid: prompt.authorFid,
+      createdAt: prompt.createdAt,
+      expiresAt: prompt.expiresAt,
+      totalConfessions: 0,
+      totalReveals: 0
+    })
+
+    // Add to author's prompts list
+    const authorPromptsKey = `${this.authorPromptsPrefix}:${prompt.authorFid}`
+    await this.redis.sadd(authorPromptsKey, newPromptId)
+
+    // Add to all prompts list
+    await this.redis.sadd(this.allPromptsKey, newPromptId)
   }
 
   async getPrompt(promptId: string): Promise<StoredPrompt | null> {
@@ -317,4 +378,7 @@ export class RedisHelperClass {
 }
 
 // Create and export a singleton instance
-export const redisHelper = new RedisHelperClass() 
+export const redisHelper = new RedisHelperClass(new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN
+})) 
