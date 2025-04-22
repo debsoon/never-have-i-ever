@@ -7,8 +7,7 @@ import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
 import { useAccount } from 'wagmi'
 import { LoadingState } from '@/app/components/LoadingState'
-import { SendTransaction } from '@/app/components/SendTransaction'
-import { CONTRACT_ADDRESS } from '@/app/constants'
+import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 
 interface PromptData {
   expiresAt: number
@@ -93,17 +92,10 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="flex flex-col items-center space-y-4 w-full">
-              <SendTransaction
-                contractAddress={CONTRACT_ADDRESS}
+              <PayToRevealTransaction 
+                promptId={params.id}
                 onSuccess={() => {
                   window.location.href = `/prompts/${params.id}/reveal`
-                }}
-                functionName="payToReveal"
-                args={[params.id]}
-                buttonText={{
-                  pending: 'Confirming...',
-                  confirming: 'Processing...',
-                  default: 'REVEAL NOW'
                 }}
               />
 

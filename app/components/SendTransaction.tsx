@@ -3,10 +3,8 @@
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
-import { neuzeitGrotesk, txcPearl } from '@/utils/fonts'
+import { neuzeitGrotesk } from '@/utils/fonts'
 import { useEffect } from 'react'
-import { cn } from '@/lib/utils'
-import { base } from 'wagmi/chains'
 
 const CONTRACT_ABI = [
   {
@@ -18,45 +16,20 @@ const CONTRACT_ABI = [
       { name: 'durationInHours', type: 'uint256' }
     ],
     outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    name: 'payToReveal',
-    type: 'function',
-    stateMutability: 'payable',
-    inputs: [{ name: 'promptId', type: 'uint256' }],
-    outputs: [],
   }
 ] as const
+
+// Price in wei (0.00063 ETH = ~$1 at $1577.10/ETH)
+const PRICE_IN_WEI = BigInt(630_000_000_000_000)
 
 interface SendTransactionProps {
   contractAddress: `0x${string}`
   onSuccess?: (hash: `0x${string}`) => void
   autoSubmit?: boolean
-  className?: string
-  variant?: 'button' | 'link'
-  functionName: 'createPrompt' | 'payToReveal'
-  args: any[]
-  buttonText?: {
-    pending?: string
-    confirming?: string
-    default?: string
-  }
+  prompt?: string
 }
 
-export function SendTransaction({ 
-  contractAddress, 
-  onSuccess, 
-  autoSubmit = true,
-  className,
-  variant = 'button',
-  functionName,
-  args,
-  buttonText = {
-    pending: 'Check your wallet...',
-    confirming: 'Processing...',
-    default: 'PAY $1 TO SUBMIT'
-  }
-}: SendTransactionProps) {
+export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true, prompt }: SendTransactionProps) {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   
@@ -69,7 +42,6 @@ export function SendTransaction({
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
-    chainId: base.id
   })
 
   // Function to prepare and send transaction
@@ -79,41 +51,31 @@ export function SendTransaction({
       return
     }
 
+    if (!prompt) {
+      console.error('No prompt provided')
+      return
+    }
+
     try {
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
-        functionName,
-        args: functionName === 'createPrompt' ? [args[0], BigInt(args[1])] : [BigInt(args[0])]
+        functionName: 'createPrompt',
+        args: [prompt, BigInt(24)] // 24 hours
       })
 
-      console.log('Sending transaction with data:', data)
-      
-      await sendTransaction({
+      sendTransaction({
         to: contractAddress,
         data,
-        value: BigInt(630_000_000_000_000), // Must match priceInWei in contract
-        chainId: base.id
+        value: PRICE_IN_WEI
       })
     } catch (err) {
       console.error('Error:', err)
-      // Handle specific contract errors
-      if (err instanceof Error) {
-        if (err.message.includes('InsufficientPayment')) {
-          console.error('Payment amount must be exactly 0.00063 ETH')
-        } else if (err.message.includes('PromptNotFound')) {
-          console.error('Prompt not found')
-        } else if (err.message.includes('PromptExpired')) {
-          console.error('Prompt has expired')
-        } else if (err.message.includes('AlreadyRevealed')) {
-          console.error('You have already revealed this prompt')
-        }
-      }
     }
   }
 
   // Auto-submit when component mounts if autoSubmit is true
   useEffect(() => {
-    if (autoSubmit && isConnected && !hash && !isPending && !error) {
+    if (autoSubmit && !hash && !isPending && !error) {
       prepareAndSendTransaction()
     }
   }, [isConnected, autoSubmit, hash, isPending, error])
@@ -132,26 +94,16 @@ export function SendTransaction({
   }, [isConfirmed, hash, onSuccess])
 
   return (
-    <form onSubmit={submit} className={cn("flex flex-col gap-4 w-full", className)}>
+    <form onSubmit={submit} className="flex flex-col gap-4 w-full">
       <button 
         disabled={isPending || isConfirming}
         type="submit"
-        className={cn(
-          variant === 'button' ? [
-            "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
-            "text-3xl hover:bg-[#8f2211] transition-colors",
-            "border-2 border-[#B02A15]",
-            txcPearl.className
-          ] : [
-            "text-[#B02A15] text-lg underline hover:opacity-80 transition-opacity inline-block",
-            neuzeitGrotesk.className
-          ]
-        )}
+        className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider"
       >
-        {isPending ? buttonText.pending :
-         isConfirming ? buttonText.confirming :
+        {isPending ? 'Check your wallet...' :
+         isConfirming ? 'Creating prompt...' :
          !isConnected ? 'CONNECT WALLET' :
-         buttonText.default}
+         'PAY $1 TO SUBMIT'}
       </button>
 
       {isConnected && (

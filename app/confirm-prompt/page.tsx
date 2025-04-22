@@ -112,13 +112,7 @@ function ConfirmPromptContent() {
           <SendTransaction 
             contractAddress={CONTRACT_ADDRESS as `0x${string}`}
             onSuccess={handleSuccess}
-            functionName="createPrompt"
-            args={[24]}
-            buttonText={{
-              pending: 'Check your wallet...',
-              confirming: 'Creating prompt...',
-              default: 'PAY $1 TO SUBMIT'
-            }}
+            prompt={prompt as string}
           />
         </div>
       </div>

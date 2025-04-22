@@ -17,9 +17,9 @@ const baseChain = {
 }
 
 export const config = createConfig({
-  chains: [baseChain],
+  chains: [base],
   transports: {
-    [baseChain.id]: http(),
+    [base.id]: http(),
   },
   connectors: [
     miniAppConnector()

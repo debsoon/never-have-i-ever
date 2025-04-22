@@ -176,7 +176,7 @@ const TAB_OVERLAPS = {
   responded: { // Overlaps for RESPONDED tab
     active: {
       afterActiveCreated: '-2px',
-      afterInactiveCreated: '-8px'
+      afterInactiveCreated: '-4px'
     },
     inactive: {
       afterActiveCreated: '-8px',
