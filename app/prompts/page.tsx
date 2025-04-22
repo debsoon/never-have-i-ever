@@ -23,6 +23,7 @@ interface PromptWithStatus extends StoredPrompt {
   status: 'new' | 'expiring' | 'ended' | 'active'
   spicy?: boolean
   hasResponded: boolean
+  totalReveals: number
 }
 
 type TabType = 'all' | 'created' | 'responded'
@@ -61,6 +62,7 @@ interface RedisPrompt {
   createdAt: number
   expiresAt: number
   totalConfessions: number
+  totalReveals: number
 }
 
 async function loadPrompts(userFid?: number): Promise<PromptWithStatus[]> {
@@ -90,6 +92,7 @@ async function loadPrompts(userFid?: number): Promise<PromptWithStatus[]> {
         createdAt: prompt.createdAt,
         expiresAt: prompt.expiresAt,
         totalConfessions: prompt.totalConfessions || 0,
+        totalReveals: prompt.totalReveals || 0,
         status: getPromptStatus(prompt),
         spicy: isSpicyPrompt(prompt.content),
         hasResponded: userInteractions?.respondedPrompts?.includes(prompt.id) || false

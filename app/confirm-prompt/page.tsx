@@ -61,9 +61,7 @@ function ConfirmPromptContent() {
         content: prompt as string,
         authorFid: fid,
         createdAt: Date.now(),
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
-        totalConfessions: 0,
-        totalReveals: 0
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
       })
 
       await sendNotification({

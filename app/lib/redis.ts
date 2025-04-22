@@ -312,7 +312,7 @@ export class RedisHelperClass {
   }
 
   // Public methods that delegate to storage
-  async createPrompt(prompt: StoredPrompt): Promise<void> {
+  async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions' | 'totalReveals'>): Promise<void> {
     // Get the next prompt number for this Farcaster ID
     const promptCountKey = `${this.promptCountPrefix}:${prompt.authorFid}`
     const promptCount = await this.redis.incr(promptCountKey)
@@ -322,15 +322,25 @@ export class RedisHelperClass {
     
     // Create the prompt with the new ID
     const promptKey = `${this.promptPrefix}:${newPromptId}`
-    await this.redis.hset(promptKey, {
+    const storedPrompt: StoredPrompt = {
+      ...prompt,
       id: newPromptId,
-      content: prompt.content,
-      authorFid: prompt.authorFid,
-      createdAt: prompt.createdAt,
-      expiresAt: prompt.expiresAt,
       totalConfessions: 0,
       totalReveals: 0
-    })
+    }
+    
+    // Convert to Record<string, unknown> for hset
+    const promptData: Record<string, unknown> = {
+      id: storedPrompt.id,
+      content: storedPrompt.content,
+      authorFid: storedPrompt.authorFid,
+      createdAt: storedPrompt.createdAt,
+      expiresAt: storedPrompt.expiresAt,
+      totalConfessions: storedPrompt.totalConfessions,
+      totalReveals: storedPrompt.totalReveals
+    }
+    
+    await this.redis.hset(promptKey, promptData)
 
     // Add to author's prompts list
     const authorPromptsKey = `${this.authorPromptsPrefix}:${prompt.authorFid}`
