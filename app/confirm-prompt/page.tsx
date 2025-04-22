@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { encodeFunctionData, decodeFunctionResult } from 'viem'
+import { encodeFunctionData, decodeEventLog, keccak256, toBytes } from 'viem'
 import { type BaseError } from 'viem'
 import { useNotification } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
@@ -25,6 +25,16 @@ const CONTRACT_ABI = [
       { name: 'durationInHours', type: 'uint256' }
     ],
     outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'PromptCreated',
+    type: 'event',
+    inputs: [
+      { name: 'promptId', type: 'uint256', indexed: true },
+      { name: 'author', type: 'address', indexed: true },
+      { name: 'content', type: 'string', indexed: false },
+      { name: 'expiresAt', type: 'uint256', indexed: false }
+    ]
   }
 ] as const
 
