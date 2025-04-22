@@ -47,6 +47,14 @@ function ConfirmPromptContent() {
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
 
+  // 🔁 Only trigger handleSuccess once
+  useEffect(() => {
+    if (isConfirmed && hash && !hasHandledRef.current) {
+      hasHandledRef.current = true
+      handleSuccess(hash)
+    }
+  }, [isConfirmed, hash])
+
   if (!prompt) {
     router.push('/create-prompt')
     return null
@@ -112,14 +120,6 @@ function ConfirmPromptContent() {
       })
     }
   }
-
-  // 🔁 Only trigger handleSuccess once
-  useEffect(() => {
-    if (isConfirmed && hash && !hasHandledRef.current) {
-      hasHandledRef.current = true
-      handleSuccess(hash)
-    }
-  }, [isConfirmed, hash])
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
