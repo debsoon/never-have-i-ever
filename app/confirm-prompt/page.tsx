@@ -82,7 +82,16 @@ function ConfirmPromptContent() {
 
       setDebugMessage('Decoding event log...')
       const { args } = decodeEventLog({
-        abi: [PROMPT_CREATED_EVENT],
+        abi: [{
+          type: 'event',
+          name: 'PromptCreated',
+          inputs: [
+            { name: 'promptId', type: 'uint256', indexed: true },
+            { name: 'author', type: 'address', indexed: true },
+            { name: 'content', type: 'string', indexed: false },
+            { name: 'expiresAt', type: 'uint256', indexed: false },
+          ],
+        }],
         data: log.data,
         topics: log.topics,
       })
