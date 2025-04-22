@@ -89,14 +89,18 @@ function ConfirmPromptContent() {
         data: log.data,
         topics: log.topics,
       })
-
-      if (!args) {
-        setDebugMessage('❌ Failed to decode event args')
-        throw new Error('Failed to decode event args')
+      
+      if (!args || typeof args.promptId !== 'bigint') {
+        setDebugMessage(`❌ Invalid or missing promptId: ${JSON.stringify(args)}`)
+        throw new Error('Invalid promptId format')
       }
 
+      setDebugMessage(`🧪 Decoding log with topics: ${JSON.stringify(log.topics)}`)
+      
       const promptId = args.promptId.toString()
       setDebugMessage(`✅ Prompt ID decoded: ${promptId}`)
+
+      setDebugMessage(`📏 Type of promptId: ${typeof args.promptId}`)
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
