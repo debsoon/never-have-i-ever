@@ -38,6 +38,18 @@ function ConfirmPromptContent() {
   const router = useRouter()
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processingComplete, setProcessingComplete] = useState(false)
+  const [promptId, setPromptId] = useState<string | null>(null)
+
+  // Separate the navigation into its own effect
+  useEffect(() => {
+    if (processingComplete && promptId) {
+      const timer = setTimeout(() => {
+        router.push(`/prompts/${promptId}`)
+      }, 3000) // Wait 3 seconds before redirecting
+      return () => clearTimeout(timer)
+    }
+  }, [processingComplete, promptId, router])
 
   const isCorrectChain = chainId === base.id
 
@@ -65,6 +77,8 @@ function ConfirmPromptContent() {
 
     try {
       setIsProcessing(true)
+      setProcessingComplete(false)
+      setPromptId(null)
       setDebugMessage('⏳ Waiting for transaction receipt...')
       
       // Add a small delay before fetching receipt
@@ -95,8 +109,9 @@ function ConfirmPromptContent() {
       }
 
       setDebugMessage('🔍 Extracting promptId from event topic...')
-      const promptId = BigInt(log.topics[1]).toString()
-      setDebugMessage(`✅ Prompt ID: ${promptId}`)
+      const extractedPromptId = BigInt(log.topics[1]).toString()
+      setPromptId(extractedPromptId)
+      setDebugMessage(`✅ Prompt ID: ${extractedPromptId}`)
 
       setDebugMessage('🔍 Fetching user FID...')
       const userRes = await fetch(`/api/users/wallet/${address}`)
@@ -105,20 +120,20 @@ function ConfirmPromptContent() {
 
       setDebugMessage('💾 Creating prompt in Redis...')
       await redisHelper.createPrompt({
-        id: promptId,
+        id: extractedPromptId,
         content: prompt as string,
         authorFid: fid,
         createdAt: Date.now(),
         expiresAt: Date.now() + 86400 * 1000,
       })
 
-      setDebugMessage('✅ Prompt saved. Redirecting...')
+      setDebugMessage('✅ Success! Redirecting in 3 seconds...')
       await sendNotification({
         title: 'Prompt Submitted!',
         body: `Your "Never Have I Ever" prompt has been posted.`,
       })
 
-      router.push(`/prompts/${promptId}`)
+      setProcessingComplete(true)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setDebugMessage(`🔥 Error Details:\nMessage: ${errorMessage}\nStack: ${err instanceof Error ? err.stack : 'No stack trace'}\n`)
