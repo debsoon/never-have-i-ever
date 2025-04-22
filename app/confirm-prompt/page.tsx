@@ -66,71 +66,77 @@ function ConfirmPromptContent() {
 
   async function handleSuccess(txHash: `0x${string}`) {
     try {
-      setDebugMessage('Fetching transaction receipt...')
+      setDebugMessage('⏳ Fetching transaction receipt...')
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
-
-      setDebugMessage('Inspecting logs for PromptCreated...')
-      for (const log of receipt.logs) {
-        if (log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()) {
-          if (log.topics[0] === PROMPT_CREATED_TOPIC) {
-            setDebugMessage('Found PromptCreated log, decoding...')
-
-            const { args } = decodeEventLog({
-              abi: [{
-                type: 'event',
-                name: 'PromptCreated',
-                inputs: [
-                  { name: 'promptId', type: 'uint256', indexed: true },
-                  { name: 'author', type: 'address', indexed: true },
-                  { name: 'content', type: 'string', indexed: false },
-                  { name: 'expiresAt', type: 'uint256', indexed: false },
-                ],
-              }],
-              data: log.data,
-              topics: log.topics,
-            })
-
-            if (!args) {
-              setDebugMessage('Failed to decode event args')
-              throw new Error('Failed to decode event args')
-            }
-
-            const promptId = args.promptId.toString()
-            setDebugMessage(`Prompt ID decoded: ${promptId}`)
-
-            setDebugMessage('Fetching user FID...')
-            const userRes = await fetch(`/api/users/wallet/${address}`)
-            const { fid } = await userRes.json()
-            setDebugMessage(`FID: ${fid}`)
-
-            setDebugMessage('Creating prompt in Redis...')
-            await redisHelper.createPrompt({
-              id: promptId,
-              content: prompt as string,
-              authorFid: fid,
-              createdAt: Date.now(),
-              expiresAt: Date.now() + 86400 * 1000,
-            })
-            setDebugMessage('Prompt successfully saved to Redis')
-
-            await sendNotification({
-              title: 'Prompt Submitted!',
-              body: `Your "Never Have I Ever" prompt has been posted.`,
-            })
-
-            router.push(`/prompts/${promptId}`)
-            return
-          } else {
-            setDebugMessage(`Log from contract matched, but topic[0] was ${log.topics?.[0]?.slice(0, 10) ?? 'missing'}...`)
-          }
-        }
+  
+      // Display all logs from the receipt for visibility
+      setDebugMessage(`📦 Receipt logs:\n${JSON.stringify(receipt.logs, null, 2)}`)
+  
+      // Compute topic hash dynamically (make sure it matches your event)
+      const topicHash = keccak256(
+        toBytes('PromptCreated(uint256,address,string,uint256)')
+      )
+  
+      const log = receipt.logs.find(
+        (log) =>
+          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
+          log.topics[0] === topicHash
+      )
+  
+      if (!log) {
+        setDebugMessage('❌ PromptCreated event not found in logs.')
+        return
       }
-
-      setDebugMessage('No matching PromptCreated log found in this receipt.')
-      throw new Error('PromptCreated event not found')
+  
+      setDebugMessage('✅ Found log. Attempting to decode...')
+  
+      const { args } = decodeEventLog({
+        abi: [{
+          type: 'event',
+          name: 'PromptCreated',
+          inputs: [
+            { name: 'promptId', type: 'uint256', indexed: true },
+            { name: 'author', type: 'address', indexed: true },
+            { name: 'content', type: 'string', indexed: false },
+            { name: 'expiresAt', type: 'uint256', indexed: false },
+          ],
+        }],
+        data: log.data,
+        topics: log.topics,
+      })
+  
+      if (!args) {
+        setDebugMessage('❌ Failed to decode event args')
+        throw new Error('Failed to decode event args')
+      }
+  
+      const promptId = args.promptId.toString()
+      setDebugMessage(`✅ Prompt ID decoded: ${promptId}`)
+  
+      setDebugMessage('🔍 Fetching user FID...')
+      const userRes = await fetch(`/api/users/wallet/${address}`)
+      const { fid } = await userRes.json()
+      setDebugMessage(`✅ FID fetched: ${fid}`)
+  
+      setDebugMessage('💾 Creating prompt in Redis...')
+      await redisHelper.createPrompt({
+        id: promptId,
+        content: prompt as string,
+        authorFid: fid,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 86400 * 1000,
+      })
+  
+      setDebugMessage('✅ Prompt saved. Redirecting...')
+      await sendNotification({
+        title: 'Prompt Submitted!',
+        body: `Your "Never Have I Ever" prompt has been posted.`,
+      })
+  
+      router.push(`/prompts/${promptId}`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setDebugMessage(`Error: ${errorMessage}`)
+      setDebugMessage(`🔥 Error: ${errorMessage}`)
       console.error('Error in handleSuccess:', err)
       await sendNotification({
         title: 'Error',
