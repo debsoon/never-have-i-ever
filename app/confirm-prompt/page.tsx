@@ -61,7 +61,7 @@ function ConfirmPromptContent() {
         content: prompt as string,
         authorFid: fid,
         createdAt: Date.now(),
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
+        expiresAt: Date.now() + 86400 * 1000,
       })
 
       await sendNotification({
@@ -112,6 +112,7 @@ function ConfirmPromptContent() {
           <SendTransaction 
             contractAddress={CONTRACT_ADDRESS as `0x${string}`}
             onSuccess={handleSuccess}
+            prompt={prompt as string}
           />
         </div>
       </div>
