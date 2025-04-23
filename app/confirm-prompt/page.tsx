@@ -151,31 +151,17 @@ function ConfirmPromptContent() {
       try {
         // Prepare and validate Redis data
         const redisData = {
-          id: "999", // Hardcoded test ID
+          id: extractedPromptId,
           content: prompt as string,
           authorFid: userData.fid,
           createdAt: Date.now(),
           expiresAt: Date.now() + 86400 * 1000,
         }
 
-        // Validate all required fields
-        type RedisData = {
-          id: string;
-          content: string;
-          authorFid: any;
-          createdAt: number;
-          expiresAt: number;
-        }
-        const requiredFields: (keyof RedisData)[] = ['id', 'content', 'authorFid', 'createdAt', 'expiresAt']
-        const missingFields = requiredFields.filter(field => !redisData[field])
-        if (missingFields.length > 0) {
-          throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
-        }
-
-        setDebugMessage(`🚀 Attempting Redis storage with hardcoded test ID:\n${JSON.stringify(redisData, null, 2)}`)
+        setDebugMessage(`🚀 Attempting to create prompt via API with data:\n${JSON.stringify(redisData, null, 2)}`)
         
         // Use API route instead of direct Redis access
-        const response = await fetch('/api/redis/create-prompt', {
+        const response = await fetch('/api/prompts/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -190,7 +176,7 @@ function ConfirmPromptContent() {
           throw new Error(`API Error: ${responseData.error}`)
         }
 
-        setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
+        setDebugMessage(`📝 API createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
 
         // Verify the write immediately
         try {
