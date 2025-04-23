@@ -138,6 +138,7 @@ export function PayToRevealTransaction({
         return
       }
 
+      let responseData;
       try {
         setDebugMessage("📦 Transaction confirmed, preparing payment API request...")
         // Record payment in Redis
@@ -151,7 +152,7 @@ export function PayToRevealTransaction({
           })
         })
 
-        const responseData = await response.json()
+        responseData = await response.json()
         
         if (!response.ok) {
           throw new Error(responseData.error || 'Failed to record payment')
@@ -166,10 +167,10 @@ export function PayToRevealTransaction({
         }
       } catch (err) {
         console.error('Error recording payment:', err)
-        setDebugMessage(`❌ Payment API Error:\n${err instanceof Error ? err.message : 'Unknown error'}\nRequest Body:\n${JSON.stringify({ 
-          promptId, 
-          walletAddress: address, 
-          userFid: miniKitContext?.user?.fid 
+        setDebugMessage(`❌ Payment API Error:\n${responseData?.error || 'Unknown'}\n\nSubmitted:\n${JSON.stringify({
+          walletAddress: address,
+          userFid: miniKitContext?.user?.fid,
+          txHash: hash
         }, null, 2)}`)
       }
     }
