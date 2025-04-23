@@ -7,7 +7,7 @@ const KEYS = {
   CONFESSION: (promptId: string, userFid: number) => `confession:${promptId}:${userFid}`,
   CONFESSIONS_BY_PROMPT: (promptId: string) => `confessions:prompt:${promptId}`,
   PAYMENTS: (promptId: string) => `prompt:${promptId}:payments`,
-  PAYMENT_DETAILS: (promptId: string, walletAddress: string) => `prompt:${promptId}:payment:${walletAddress}`,
+  PAYMENT_DETAILS: (promptId: string, userFid: number) => `prompt:${promptId}:payment:${userFid}`,
   IMAGE: (promptId: string, userFid: number) => `image:${promptId}:${userFid}`,
 } as const
 
@@ -136,18 +136,17 @@ class LocalStorageHelper implements StorageInterface {
   }
 
   async recordPayment(payment: PaymentStatus): Promise<void> {
-    const normalizedAddress = payment.userAddress.toLowerCase()
     const paymentsKey = KEYS.PAYMENTS(payment.promptId)
-    const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, normalizedAddress)
+    const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, payment.userFid)
     
     // Add to payments set
     const payments = this.getItem<string[]>(paymentsKey) || []
-    payments.push(normalizedAddress)
+    payments.push(payment.userFid.toString())
     this.setItem(paymentsKey, payments)
     
     // Store payment details
     this.setItem(paymentDetailsKey, {
-      userFid: payment.userFid,
+      userAddress: payment.userAddress.toLowerCase(),
       txHash: payment.txHash,
       timestamp: payment.timestamp
     })
@@ -307,16 +306,15 @@ class RedisStorageAdapter implements StorageInterface {
     }
 
     try {
-      const normalizedAddress = payment.userAddress.toLowerCase()
       const paymentsKey = KEYS.PAYMENTS(payment.promptId)
-      const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, normalizedAddress)
+      const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, payment.userFid)
 
       // Add to payments set
-      await this.redis.sadd(paymentsKey, normalizedAddress)
+      await this.redis.sadd(paymentsKey, payment.userFid.toString())
       
       // Store payment details
       await this.redis.hset(paymentDetailsKey, {
-        userFid: payment.userFid,
+        userAddress: payment.userAddress.toLowerCase(),
         txHash: payment.txHash,
         timestamp: payment.timestamp
       })
@@ -336,8 +334,8 @@ class RedisStorageAdapter implements StorageInterface {
 
     try {
       const paymentsKey = KEYS.PAYMENTS(promptId)
-      const payments = await this.redis.smembers(paymentsKey)
-      return payments.length > 0
+      const hasPaid = await this.redis.sismember(paymentsKey, userFid.toString())
+      return Boolean(hasPaid)
     } catch (error) {
       console.error('Redis: Error checking payment status:', error)
       return false

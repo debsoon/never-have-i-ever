@@ -2,31 +2,52 @@ import { NextRequest, NextResponse } from 'next/server'
 import { kv } from '@vercel/kv'
 import { StoredPrompt } from '@/app/lib/redis'
 
-// GET /api/prompts/[id]/payments - Check if a wallet has paid
+// GET /api/prompts/[id]/payments - Check if a user has paid
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const searchParams = request.nextUrl.searchParams
-  const walletAddress = searchParams.get('wallet')?.toLowerCase()
+  const userFid = searchParams.get('userFid')
 
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Wallet address required' }, { status: 400 })
+  if (!userFid) {
+    return NextResponse.json({ 
+      error: 'User FID required',
+      debugLog: {
+        error: 'Missing userFid parameter',
+        timestamp: Date.now()
+      }
+    }, { status: 400 })
   }
 
   try {
-    // More efficient check using SISMEMBER
-    const hasPaid = await kv.sismember(`prompt:${params.id}:payments`, walletAddress)
+    // Check if user has paid using SISMEMBER
+    const hasPaid = await kv.sismember(`prompt:${params.id}:payments`, userFid)
     // Get total paid count
     const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
     
     return NextResponse.json({
       hasPaid: Boolean(hasPaid),
-      totalPaid
+      totalPaid,
+      debugLog: {
+        userFid,
+        promptId: params.id,
+        hasPaid: Boolean(hasPaid),
+        totalPaid,
+        timestamp: Date.now()
+      }
     })
   } catch (error) {
     console.error('Error checking payment status:', error)
-    return NextResponse.json({ error: 'Failed to check payment status' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to check payment status',
+      debugLog: {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userFid,
+        promptId: params.id,
+        timestamp: Date.now()
+      }
+    }, { status: 500 })
   }
 }
 
@@ -38,31 +59,42 @@ export async function POST(
   try {
     const { walletAddress, userFid, txHash } = await request.json()
 
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address required' }, { status: 400 })
+    if (!userFid) {
+      return NextResponse.json({ 
+        error: 'User FID required',
+        debugLog: {
+          error: 'Missing userFid in request body',
+          received: { walletAddress, txHash },
+          timestamp: Date.now()
+        }
+      }, { status: 400 })
     }
 
-    // Normalize wallet address to lowercase
-    const normalizedAddress = walletAddress.toLowerCase()
-
     // Check if payment already recorded using SISMEMBER
-    const alreadyPaid = await kv.sismember(`prompt:${params.id}:payments`, normalizedAddress)
+    const alreadyPaid = await kv.sismember(`prompt:${params.id}:payments`, userFid.toString())
     if (alreadyPaid) {
       const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
       return NextResponse.json({ 
         message: 'Payment already recorded',
         hasPaid: true,
-        totalPaid
+        totalPaid,
+        debugLog: {
+          userFid,
+          promptId: params.id,
+          status: 'already_paid',
+          totalPaid,
+          timestamp: Date.now()
+        }
       })
     }
 
     // Record the payment details
     await Promise.all([
       // Add to payments set
-      kv.sadd(`prompt:${params.id}:payments`, normalizedAddress),
+      kv.sadd(`prompt:${params.id}:payments`, userFid.toString()),
       // Store payment details
-      kv.hset(`prompt:${params.id}:payment:${normalizedAddress}`, {
-        userFid,
+      kv.hset(`prompt:${params.id}:payment:${userFid}`, {
+        userAddress: walletAddress?.toLowerCase(),
         txHash,
         timestamp: Date.now()
       })
@@ -73,10 +105,25 @@ export async function POST(
     return NextResponse.json({
       message: 'Payment recorded successfully',
       hasPaid: true,
-      totalPaid
+      totalPaid,
+      debugLog: {
+        userFid,
+        promptId: params.id,
+        walletAddress: walletAddress?.toLowerCase(),
+        txHash,
+        totalPaid,
+        timestamp: Date.now()
+      }
     })
   } catch (error) {
     console.error('Error recording payment:', error)
-    return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to record payment',
+      debugLog: {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        promptId: params.id,
+        timestamp: Date.now()
+      }
+    }, { status: 500 })
   }
 } 

@@ -16,6 +16,7 @@ import { parseUnits } from 'viem'
 import { StateDebugger } from '@/app/components/StateDebugger'
 import confetti from 'canvas-confetti'
 import { LoadingState } from '@/app/components/LoadingState'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 
 interface RedisPrompt {
   id: string
@@ -105,14 +106,15 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   } | null>(null)
 
   const { address } = useAccount()
+  const { context: miniKitContext } = useMiniKit()
 
   // Check payment status
   useEffect(() => {
     async function checkPayment() {
-      if (!address) return
+      if (!miniKitContext?.user?.fid) return
 
       try {
-        const res = await fetch(`/api/prompts/${params.id}/payments?wallet=${address}`)
+        const res = await fetch(`/api/prompts/${params.id}/payments?userFid=${miniKitContext.user.fid}`)
         if (!res.ok) {
           throw new Error('Failed to check payment status')
         }
@@ -126,7 +128,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     }
 
     checkPayment()
-  }, [address, params.id])
+  }, [miniKitContext?.user?.fid, params.id])
 
   useEffect(() => {
     const updateTimeRemaining = () => {
@@ -668,7 +670,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   await fetch(`/api/prompts/${params.id}/payments`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ walletAddress: address })
+                    body: JSON.stringify({ 
+                      walletAddress: address,
+                      userFid: miniKitContext?.user?.fid
+                    })
                   })
                   setHasPaid(true)
                 }}
@@ -753,7 +758,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                 await fetch(`/api/prompts/${params.id}/payments`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ walletAddress: address })
+                  body: JSON.stringify({ 
+                    walletAddress: address,
+                    userFid: miniKitContext?.user?.fid
+                  })
                 })
                 setHasPaid(true)
               }}
