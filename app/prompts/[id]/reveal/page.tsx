@@ -17,6 +17,7 @@ import { StateDebugger } from '@/app/components/StateDebugger'
 import confetti from 'canvas-confetti'
 import { LoadingState } from '@/app/components/LoadingState'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
+import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 
 interface RedisPrompt {
   id: string
@@ -660,37 +661,20 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              <Transaction 
-                calls={[{
-                  to: USDC_CONTRACT,
-                  data: `0xa9059cbb${TREASURY_ADDRESS.slice(2).padStart(64, '0')}${parseUnits('1', 6).toString(16).padStart(64, '0')}` as `0x${string}`,
-                  value: BigInt(0)
-                }]}
-                onSuccess={async () => {
-                  await fetch(`/api/prompts/${params.id}/payments`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      walletAddress: address,
-                      userFid: miniKitContext?.user?.fid
-                    })
-                  })
-                  setHasPaid(true)
-                }}
-                onError={(error: APIError) => console.error('Payment failed:', error)}
-              >
-                <button
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-4">This prompt has expired</h2>
+                <p className="mb-4">Pay to reveal the confessions</p>
+                <PayToRevealTransaction
+                  promptId={params.id}
+                  onSuccess={() => setHasPaid(true)}
                   className={cn(
                     "bg-[#B02A15] text-[#FCD9A8] px-6 py-3 rounded-full",
                     "text-3xl hover:bg-[#8f2211] transition-colors uppercase",
                     "tracking-wider mb-6 w-fit mx-auto",
                     txcPearl.className
                   )}
-                  disabled={!address}
-                >
-                  REVEAL WHO THEY ARE
-                </button>
-              </Transaction>
+                />
+              </div>
 
               <Link
                 href="/create-prompt"
@@ -747,40 +731,32 @@ export default function RevealPage({ params }: { params: { id: string } }) {
             <p className={cn("text-xl text-[#EAC898] mb-8", neuzeitGrotesk.className)}>
               {prompt.totalConfessions} {prompt.totalConfessions === 1 ? 'person has' : 'people have'} confessed
             </p>
-            <Transaction 
-              calls={[{
-                to: USDC_CONTRACT,
-                data: `0xa9059cbb${TREASURY_ADDRESS.slice(2).padStart(64, '0')}${parseUnits('1', 6).toString(16).padStart(64, '0')}` as `0x${string}`,
-                value: BigInt(0)
-              }]}
-              onSuccess={async () => {
-                // Record payment
-                await fetch(`/api/prompts/${params.id}/payments`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ 
-                    walletAddress: address,
-                    userFid: miniKitContext?.user?.fid
-                  })
-                })
-                setHasPaid(true)
-              }}
-              onError={(error: APIError) => console.error('Payment failed:', error)}
-            >
-              <button
-                className={cn(
-                  "bg-[#B02A15] text-[#FCD9A8] px-6 py-3 rounded-full text-4xl",
-                  "hover:bg-[#8f2211] transition-colors",
-                  txcPearl.className
-                )}
-                disabled={!address}
-              >
-                Pay $1 to See Confessions
-              </button>
-            </Transaction>
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Pay to reveal</h2>
+              <p className="mb-4">Pay to reveal the confessions</p>
+              {!isExpired && !hasPaid && (
+                <PayToRevealTransaction
+                  promptId={params.id}
+                  onSuccess={() => setHasPaid(true)}
+                  className={cn(
+                    "bg-[#B02A15] text-[#FCD9A8] px-6 py-3 rounded-full text-4xl",
+                    "hover:bg-[#8f2211] transition-colors",
+                    txcPearl.className
+                  )}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs px-4 py-2 mt-4 rounded">
+          Debug State:<br/>
+          hasPaid: {String(hasPaid)}<br/>
+          isExpired: {String(isExpired)}<br/>
+          totalPaid: {totalPaid}
+        </div>
+      )}
     </>
   )
 } 
