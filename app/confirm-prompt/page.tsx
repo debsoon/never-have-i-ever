@@ -151,7 +151,7 @@ function ConfirmPromptContent() {
       try {
         // Prepare and validate Redis data
         const redisData = {
-          id: extractedPromptId,
+          id: "999", // Hardcoded test ID
           content: prompt as string,
           authorFid: userData.fid,
           createdAt: Date.now(),
@@ -172,9 +172,9 @@ function ConfirmPromptContent() {
           throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
         }
 
-        setDebugMessage(`🚀 Attempting Redis storage with payload:\n${JSON.stringify(redisData, null, 2)}`)
+        setDebugMessage(`🚀 Attempting Redis storage with hardcoded test ID:\n${JSON.stringify(redisData, null, 2)}`)
         
-        // Attempt Redis write
+        // Attempt Redis write with hardcoded ID
         const createResult = await redisHelper.createPrompt(redisData)
         setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(createResult)}`)
 
