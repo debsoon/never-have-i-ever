@@ -491,153 +491,185 @@ export default function PromptsPage() {
                     )}
                   </div>
                 ) : (
-                  sortedPrompts.map((prompt, index) => (
-                    <div key={prompt.id}>
-                      <div className="p-6">
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="w-8" />
-                          <div className="flex items-center gap-2">
-                            {prompt.status === 'new' && (
-                              <div className={cn(
-                                "flex items-center gap-1.5 px-2 py-1 rounded-lg",
-                                "bg-[#FAD39C]",
-                                neuzeitGrotesk.className
-                              )}>
-                                <Image
-                                  src="/images/icons/star-line.png"
-                                  alt=""
-                                  width={16}
-                                  height={16}
-                                />
-                                <span className="text-sm text-[#784E14]">new</span>
-                              </div>
-                            )}
-                            {prompt.spicy && (
-                              <div className={cn(
-                                "flex items-center gap-1.5 px-2 py-1 rounded-lg",
-                                "bg-[#F8DBD4]",
-                                neuzeitGrotesk.className
-                              )}>
-                                <Image
-                                  src="/images/icons/fire-line.png"
-                                  alt=""
-                                  width={16}
-                                  height={16}
-                                />
-                                <span className="text-sm text-[#B02A15]">spicy</span>
-                              </div>
-                            )}
-                            {prompt.status === 'expiring' && (
-                              <div className={cn(
-                                "flex items-center gap-1.5 px-2 py-1 rounded-lg",
-                                "bg-[#E9E9E9]",
-                                neuzeitGrotesk.className
-                              )}>
-                                <Image
-                                  src="/images/icons/time-line.png"
-                                  alt=""
-                                  width={16}
-                                  height={16}
-                                />
-                                <span className="text-sm text-[#818181]">expiring soon</span>
-                              </div>
-                            )}
-                            {prompt.status === 'ended' && (
-                              <div className={cn(
-                                "flex items-center gap-1.5 px-2 py-1 rounded-lg",
-                                "bg-[#E9D7BE]",
-                                neuzeitGrotesk.className
-                              )}>
-                                <Image
-                                  src="/images/icons/lock-line.png"
-                                  alt=""
-                                  width={16}
-                                  height={16}
-                                />
-                                <span className="text-sm text-[#8C7D6A]">ended</span>
-                              </div>
-                            )}
-                            {prompt.status !== 'ended' && (
-                              <PromptTimer expiresAt={prompt.expiresAt} />
-                            )}
+                  <>
+                    {activeTab === 'created' && sortedPrompts.length > 0 && (
+                      <div className="pt-6 px-6">
+                        <Link
+                          href="/create-prompt"
+                          className={cn(
+                            "inline-block bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
+                            "text-2xl hover:bg-[#8f2211] transition-colors",
+                            "uppercase tracking-wider",
+                            txcPearl.className
+                          )}
+                        >
+                          CREATE A PROMPT
+                        </Link>
+                      </div>
+                    )}
+                    {activeTab === 'responded' && sortedPrompts.length > 0 && (
+                      <div className="pt-6 px-6">
+                        <button
+                          onClick={() => setActiveTab('all')}
+                          className={cn(
+                            "inline-block bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
+                            "text-2xl hover:bg-[#8f2211] transition-colors",
+                            "uppercase tracking-wider",
+                            txcPearl.className
+                          )}
+                        >
+                          CONFESS TO A PROMPT
+                        </button>
+                      </div>
+                    )}
+                    {sortedPrompts.map((prompt, index) => (
+                      <div key={prompt.id}>
+                        <div className="p-6">
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="w-8" />
+                            <div className="flex items-center gap-2">
+                              {prompt.status === 'new' && (
+                                <div className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg",
+                                  "bg-[#FAD39C]",
+                                  neuzeitGrotesk.className
+                                )}>
+                                  <Image
+                                    src="/images/icons/star-line.png"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                  />
+                                  <span className="text-sm text-[#784E14]">new</span>
+                                </div>
+                              )}
+                              {prompt.spicy && (
+                                <div className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg",
+                                  "bg-[#F8DBD4]",
+                                  neuzeitGrotesk.className
+                                )}>
+                                  <Image
+                                    src="/images/icons/fire-line.png"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                  />
+                                  <span className="text-sm text-[#B02A15]">spicy</span>
+                                </div>
+                              )}
+                              {prompt.status === 'expiring' && (
+                                <div className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg",
+                                  "bg-[#E9E9E9]",
+                                  neuzeitGrotesk.className
+                                )}>
+                                  <Image
+                                    src="/images/icons/time-line.png"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                  />
+                                  <span className="text-sm text-[#818181]">expiring soon</span>
+                                </div>
+                              )}
+                              {prompt.status === 'ended' && (
+                                <div className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg",
+                                  "bg-[#E9D7BE]",
+                                  neuzeitGrotesk.className
+                                )}>
+                                  <Image
+                                    src="/images/icons/lock-line.png"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                  />
+                                  <span className="text-sm text-[#8C7D6A]">ended</span>
+                                </div>
+                              )}
+                              {prompt.status !== 'ended' && (
+                                <PromptTimer expiresAt={prompt.expiresAt} />
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 mb-1">
-                          <Image
-                            src={userData[prompt.authorFid]?.pfp_url || '/images/default.png'}
-                            alt={`@${userData[prompt.authorFid]?.username || prompt.authorFid}`}
-                            width={32}
-                            height={32}
-                            className="rounded-full object-cover w-8 h-8"
-                            onError={(e) => {
-                              console.error('Failed to load profile image:', e)
-                              e.currentTarget.src = '/images/default.png'
-                            }}
-                          />
-                          <span className={cn("text-sm text-[#B02A15]", neuzeitGrotesk.className)}>
-                            posted by {userData[prompt.authorFid] 
-                              ? `@${userData[prompt.authorFid].username}`
-                              : `@${prompt.authorFid}`}
-                          </span>
-                        </div>
-
-                        <h2 className={cn("text-2xl mb-2 text-[#B02A15]", neuzeitGrotesk.className)}>
-                          {prompt.content}
-                        </h2>
-
-                        <div className="flex items-end justify-between">
-                          <div className="flex items-baseline gap-2">
-                            <span className={cn("text-2xl font-bold text-[#B02A15]", txcPearl.className)}>
-                              {prompt.totalConfessions || 0}
-                            </span>
-                            <span className={cn("text-base text-[#B02A15]", neuzeitGrotesk.className)}>
-                              confessions
+                          <div className="flex items-center gap-2 mb-1">
+                            <Image
+                              src={userData[prompt.authorFid]?.pfp_url || '/images/default.png'}
+                              alt={`@${userData[prompt.authorFid]?.username || prompt.authorFid}`}
+                              width={32}
+                              height={32}
+                              className="rounded-full object-cover w-8 h-8"
+                              onError={(e) => {
+                                console.error('Failed to load profile image:', e)
+                                e.currentTarget.src = '/images/default.png'
+                              }}
+                            />
+                            <span className={cn("text-sm text-[#B02A15]", neuzeitGrotesk.className)}>
+                              posted by {userData[prompt.authorFid] 
+                                ? `@${userData[prompt.authorFid].username}`
+                                : `@${prompt.authorFid}`}
                             </span>
                           </div>
-                          <div className="flex gap-1">
-                            {prompt.status === 'ended' || prompt.hasResponded ? (
-                              <button 
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
-                                  txcPearl.className,
-                                  "bg-transparent text-[#BEA98D] border-2 border-[#BEA98D] cursor-not-allowed"
-                                )}
-                                disabled
-                              >
-                                CONFESS
-                              </button>
-                            ) : (
-                              <Link href={`/prompts/${prompt.id}`}>
+
+                          <h2 className={cn("text-2xl mb-2 text-[#B02A15]", neuzeitGrotesk.className)}>
+                            {prompt.content}
+                          </h2>
+
+                          <div className="flex items-end justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <span className={cn("text-2xl font-bold text-[#B02A15]", txcPearl.className)}>
+                                {prompt.totalConfessions || 0}
+                              </span>
+                              <span className={cn("text-base text-[#B02A15]", neuzeitGrotesk.className)}>
+                                confessions
+                              </span>
+                            </div>
+                            <div className="flex gap-1">
+                              {prompt.status === 'ended' || prompt.hasResponded ? (
                                 <button 
                                   className={cn(
                                     "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
                                     txcPearl.className,
-                                    "bg-[#B02A15] text-[#FCD9A8] border-2 border-[#B02A15] hover:bg-[#8f2211] transition-colors"
+                                    "bg-transparent text-[#BEA98D] border-2 border-[#BEA98D] cursor-not-allowed"
                                   )}
+                                  disabled
                                 >
                                   CONFESS
                                 </button>
+                              ) : (
+                                <Link href={`/prompts/${prompt.id}`}>
+                                  <button 
+                                    className={cn(
+                                      "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
+                                      txcPearl.className,
+                                      "bg-[#B02A15] text-[#FCD9A8] border-2 border-[#B02A15] hover:bg-[#8f2211] transition-colors"
+                                    )}
+                                  >
+                                    CONFESS
+                                  </button>
+                                </Link>
+                              )}
+                              <Link href={getRevealHref(prompt)}>
+                                <button className={cn(
+                                  "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
+                                  "text-xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
+                                  "border-2 border-[#B02A15] uppercase tracking-wider",
+                                  txcPearl.className
+                                )}>
+                                  REVEAL
+                                </button>
                               </Link>
-                            )}
-                            <Link href={getRevealHref(prompt)}>
-                              <button className={cn(
-                                "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
-                                "text-xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
-                                "border-2 border-[#B02A15] uppercase tracking-wider",
-                                txcPearl.className
-                              )}>
-                                REVEAL
-                              </button>
-                            </Link>
+                            </div>
                           </div>
                         </div>
+                        {index < sortedPrompts.length - 1 && (
+                          <div className="h-[2px] bg-[#EAC898]" />
+                        )}
                       </div>
-                      {index < sortedPrompts.length - 1 && (
-                        <div className="h-[2px] bg-[#EAC898]" />
-                      )}
-                    </div>
-                  ))
+                    ))}
+                  </>
                 )}
               </div>
             </div>
