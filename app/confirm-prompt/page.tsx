@@ -159,7 +159,14 @@ function ConfirmPromptContent() {
         }
 
         // Validate all required fields
-        const requiredFields = ['id', 'content', 'authorFid', 'createdAt', 'expiresAt']
+        type RedisData = {
+          id: string;
+          content: string;
+          authorFid: any;
+          createdAt: number;
+          expiresAt: number;
+        }
+        const requiredFields: (keyof RedisData)[] = ['id', 'content', 'authorFid', 'createdAt', 'expiresAt']
         const missingFields = requiredFields.filter(field => !redisData[field])
         if (missingFields.length > 0) {
           throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
