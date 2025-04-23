@@ -183,22 +183,26 @@ function ConfirmPromptContent() {
           body: JSON.stringify(redisData),
         })
 
+        const responseData = await response.json()
+        
         if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(`API Error: ${errorData.error}`)
+          setDebugMessage(`❌ API Error: ${responseData.error}\nStack: ${responseData.stack || 'No stack trace'}`)
+          throw new Error(`API Error: ${responseData.error}`)
         }
 
-        const result = await response.json()
-        setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(result)}`)
+        setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
 
         // Verify the write immediately
         try {
           const verifyResponse = await fetch(`/api/redis/get-prompt?id=${redisData.id}`)
+          const verifyData = await verifyResponse.json()
+          
           if (!verifyResponse.ok) {
+            setDebugMessage(`❌ Verification failed: ${verifyData.error}`)
             throw new Error('Verification failed - prompt not found after write')
           }
-          const verifyResult = await verifyResponse.json()
-          setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyResult, null, 2)}`)
+          
+          setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyData.result, null, 2)}`)
         } catch (verifyError) {
           const verifyErrorDetails = verifyError instanceof Error
             ? `${verifyError.message}\n${verifyError.stack}`

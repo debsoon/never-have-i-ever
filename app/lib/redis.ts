@@ -326,7 +326,15 @@ export class RedisHelperClass {
 
   // Public methods that delegate to storage
   async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
-    return this.storage.createPrompt(prompt)
+    console.log('Redis: Attempting to create prompt:', prompt)
+    try {
+      const result = await this.storage.createPrompt(prompt)
+      console.log('Redis: Successfully created prompt:', result)
+      return result
+    } catch (error) {
+      console.error('Redis: Error creating prompt:', error)
+      throw error
+    }
   }
 
   async getPrompt(promptId: string): Promise<StoredPrompt | null> {
