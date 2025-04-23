@@ -12,12 +12,18 @@ import { useEffect } from "react";
 export default function App() {
   // Required MiniKit setup
   const { setFrameReady, isFrameReady } = useMiniKit();
+  const addFrame = useAddFrame();
 
   useEffect(() => {
     if (!isFrameReady) {
       setFrameReady();
+    } else {
+      // Trigger frame prompt once the frame is ready
+      addFrame().catch(error => {
+        console.error('Failed to add frame:', error);
+      });
     }
-  }, [setFrameReady, isFrameReady]);
+  }, [setFrameReady, isFrameReady, addFrame]);
 
   return (
     <main 
@@ -40,8 +46,8 @@ export default function App() {
         <Link href="/instructions">
           <button
             className="px-8 py-3 bg-[#B02A15] text-[#FCD9A8] rounded-full 
-                       text-4xl hover:bg-[#8f2211] transition-colors
-                       uppercase tracking-wider z-10"
+                     text-4xl hover:bg-[#8f2211] transition-colors
+                     uppercase tracking-wider z-10"
           >
             Start Confessing
           </button>
