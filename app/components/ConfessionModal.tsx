@@ -2,7 +2,7 @@ import { useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { useConfessions } from '../../hooks/useConfessions';
-import { StoredConfession } from '@/app/lib/types';
+import { StoredConfession } from '@/app/lib/redis';
 import Image from 'next/image';
 import { neuzeitGrotesk, txcPearl } from '@/app/utils/fonts';
 
@@ -85,7 +85,7 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
       setCaption('');
       setImageUrl('');
       onClose();
-      router.replace(`/prompts/${promptId}/success`);
+      window.location.href = `/prompts/${promptId}/success`;
     } catch (error) {
       console.error('Failed to submit confession:', error);
     }

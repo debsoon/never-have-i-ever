@@ -1,5 +1,4 @@
 import { Redis } from '@upstash/redis'
-import { StoredPrompt, StoredConfession, PaymentStatus } from './types'
 
 // Key prefixes for different data types
 const KEYS = {
@@ -7,15 +6,41 @@ const KEYS = {
   PROMPT_LIST: 'prompts:list',
   CONFESSION: (promptId: string, userFid: number) => `confession:${promptId}:${userFid}`,
   CONFESSIONS_BY_PROMPT: (promptId: string) => `confessions:prompt:${promptId}`,
-  PAYMENTS: (promptId: string) => `payments:${promptId}`,
-  PAYMENT_DETAILS: (promptId: string, userFid: string) => `payment_details:${promptId}:${userFid}`,
+  PAYMENTS: (promptId: string) => `prompt:${promptId}:payments`,
+  PAYMENT_DETAILS: (promptId: string, walletAddress: string) => `prompt:${promptId}:payment:${walletAddress}`,
   IMAGE: (promptId: string, userFid: number) => `image:${promptId}:${userFid}`,
-  IMAGE_URL: (promptId: string) => `image_url:${promptId}`
 } as const
 
-interface PaymentDetails {
+// Type definitions for stored data
+export interface StoredPrompt {
+  id: string
+  content: string
+  authorFid: number
+  createdAt: number
+  expiresAt: number
+  totalConfessions: number
+}
+
+export interface StoredConfession {
+  promptId: string
+  userFid: number
+  type: 'have' | 'never'
+  imageUrl?: string
+  caption?: string
+  timestamp: number
+  transactionHash?: string
+  // User properties added by the API
+  username?: string
+  profileImage?: string
+  userAddress?: string
+}
+
+export interface PaymentStatus {
+  promptId: string
+  userFid: number
+  userAddress: string
   txHash: string
-  timestamp: string
+  timestamp: number
 }
 
 // Storage interface for both Redis and LocalStorage
@@ -30,7 +55,6 @@ interface StorageInterface {
   hasUserPaid(promptId: string, userFid: number): Promise<boolean>
   setImageUrl(promptId: string, userFid: number, imageUrl: string): Promise<void>
   getImageUrl(promptId: string, userFid: number): Promise<string | null>
-  checkPayment(promptId: string, userFid: number): Promise<{ hasPaid: boolean; totalPaid: number }>
 }
 
 // Development mode storage helper
@@ -79,6 +103,19 @@ class LocalStorageHelper implements StorageInterface {
   async addConfession(confession: StoredConfession): Promise<void> {
     const key = KEYS.CONFESSION(confession.promptId, confession.userFid)
     this.setItem(key, confession)
+
+    // Add to confessions list
+    const confessionsKey = KEYS.CONFESSIONS_BY_PROMPT(confession.promptId)
+    const confessions = this.getItem<number[]>(confessionsKey) || []
+    confessions.push(confession.userFid)
+    this.setItem(confessionsKey, confessions)
+
+    // Update prompt's confession count
+    const prompt = await this.getPrompt(confession.promptId)
+    if (prompt) {
+      prompt.totalConfessions++
+      this.setItem(KEYS.PROMPT(confession.promptId), prompt)
+    }
   }
 
   async getConfession(promptId: string, userFid: number): Promise<StoredConfession | null> {
@@ -99,19 +136,20 @@ class LocalStorageHelper implements StorageInterface {
   }
 
   async recordPayment(payment: PaymentStatus): Promise<void> {
+    const normalizedAddress = payment.userAddress.toLowerCase()
     const paymentsKey = KEYS.PAYMENTS(payment.promptId)
-    const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, payment.userFid.toString())
+    const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, normalizedAddress)
     
     // Add to payments set
     const payments = this.getItem<string[]>(paymentsKey) || []
-    payments.push(payment.userFid.toString())
+    payments.push(normalizedAddress)
     this.setItem(paymentsKey, payments)
     
     // Store payment details
     this.setItem(paymentDetailsKey, {
       userFid: payment.userFid,
       txHash: payment.txHash,
-      timestamp: payment.timestamp.toString()
+      timestamp: payment.timestamp
     })
   }
 
@@ -128,32 +166,15 @@ class LocalStorageHelper implements StorageInterface {
   async getImageUrl(promptId: string, userFid: number): Promise<string | null> {
     return this.getItem<string>(KEYS.IMAGE(promptId, userFid))
   }
-
-  async checkPayment(promptId: string, userFid: number): Promise<{ hasPaid: boolean; totalPaid: number }> {
-    const hasPaid = await this.hasUserPaid(promptId, userFid)
-    const totalPaid = await this.hasUserPaid(promptId, userFid) ? 1 : 0
-    return { hasPaid, totalPaid }
-  }
 }
 
 // Redis storage adapter
 class RedisStorageAdapter implements StorageInterface {
-  private redis: Redis
   private isConnected: boolean = false
 
-  constructor() {
-    const url = process.env.UPSTASH_REDIS_REST_URL
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN
-
-    if (!url || !token) {
-      console.error('Redis configuration is missing. Please check your environment variables.')
-      throw new Error('Redis configuration is missing')
-    }
-
-    this.redis = new Redis({
-      url,
-      token,
-    })
+  constructor(private redis: Redis) {
+    console.log('Redis: Initializing RedisStorageAdapter with URL:', process.env.UPSTASH_REDIS_REST_URL)
+    this.verifyConnection()
   }
 
   private async verifyConnection() {
@@ -226,7 +247,33 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async addConfession(confession: StoredConfession): Promise<void> {
-    await this.redis.set(KEYS.CONFESSION(confession.promptId, confession.userFid), confession)
+    console.log('Redis: Adding confession:', confession)
+    const confessionKey = KEYS.CONFESSION(confession.promptId, confession.userFid)
+    console.log('Redis: Using confession key:', confessionKey)
+    
+    // Store the confession
+    await this.redis.set(confessionKey, confession)
+    console.log('Redis: Stored confession at key:', confessionKey)
+    
+    // Add to the set of confessions for this prompt
+    const promptConfessionsKey = KEYS.CONFESSIONS_BY_PROMPT(confession.promptId)
+    console.log('Redis: Adding to confessions set with key:', promptConfessionsKey)
+    await this.redis.sadd(promptConfessionsKey, confession.userFid.toString())
+    console.log('Redis: Added userFid to confessions set:', confession.userFid)
+    
+    // Update the prompt's confession count
+    const promptKey = KEYS.PROMPT(confession.promptId)
+    console.log('Redis: Updating prompt with key:', promptKey)
+    const prompt = await this.redis.get<StoredPrompt>(promptKey)
+    if (prompt) {
+      console.log('Redis: Current prompt totalConfessions:', prompt.totalConfessions)
+      prompt.totalConfessions++
+      console.log('Redis: New prompt totalConfessions:', prompt.totalConfessions)
+      await this.redis.set(promptKey, prompt)
+      console.log('Redis: Updated prompt totalConfessions')
+    } else {
+      console.log('Redis: Prompt not found for confession:', confession.promptId)
+    }
   }
 
   async getConfession(promptId: string, userFid: number): Promise<StoredConfession | null> {
@@ -234,62 +281,66 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async getPromptConfessions(promptId: string): Promise<StoredConfession[]> {
-    if (!this.isConnected) {
-      throw new Error('Redis not connected')
+    console.log('Redis: Starting to fetch confessions for prompt:', promptId)
+    const confessions: StoredConfession[] = []
+    
+    // Get all confession keys for this prompt
+    const confessionKeys = await this.redis.keys(`confession:${promptId}:*`)
+    console.log('Redis: Found confession keys:', confessionKeys)
+    
+    // Fetch each confession
+    for (const key of confessionKeys) {
+      console.log('Redis: Fetching confession with key:', key)
+      const confession = await this.redis.get<StoredConfession>(key)
+      console.log('Redis: Found confession:', confession)
+      if (confession) confessions.push(confession)
     }
-
-    try {
-      const confessionsKey = KEYS.CONFESSIONS_BY_PROMPT(promptId)
-      const data = await this.redis.zrange(confessionsKey, 0, -1) as string[]
-      return data.map(item => JSON.parse(item))
-    } catch (error) {
-      console.error('Redis: Error getting confessions:', error)
-      throw error
-    }
+    
+    console.log('Redis: Total confessions found:', confessions.length)
+    return confessions
   }
 
   async recordPayment(payment: PaymentStatus): Promise<void> {
     if (!this.isConnected) {
-      throw new Error('Redis not connected')
+      console.error('Redis: Attempting to record payment without verified connection')
+      await this.verifyConnection()
     }
 
     try {
-      const { promptId, userFid, txHash } = payment
-      const userFidStr = userFid.toString()
+      const normalizedAddress = payment.userAddress.toLowerCase()
+      const paymentsKey = KEYS.PAYMENTS(payment.promptId)
+      const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, normalizedAddress)
+
+      // Add to payments set
+      await this.redis.sadd(paymentsKey, normalizedAddress)
       
-      // Check if already paid
-      const alreadyPaid = await this.redis.sismember(KEYS.PAYMENTS(promptId), userFidStr)
-      if (alreadyPaid) {
-        return
-      }
+      // Store payment details
+      await this.redis.hset(paymentDetailsKey, {
+        userFid: payment.userFid,
+        txHash: payment.txHash,
+        timestamp: payment.timestamp
+      })
 
-      // Record payment
-      const paymentDetails = {
-        txHash: txHash || '',
-        timestamp: Date.now().toString()
-      }
-
-      await Promise.all([
-        this.redis.sadd(KEYS.PAYMENTS(promptId), userFidStr),
-        this.redis.hset(KEYS.PAYMENT_DETAILS(promptId, userFidStr), paymentDetails)
-      ])
+      console.log('Redis: Payment recorded successfully for prompt:', payment.promptId)
     } catch (error) {
-      console.error('Error recording payment:', error)
-      throw error
+      console.error('Redis: Error recording payment:', error)
+      throw new Error(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   async hasUserPaid(promptId: string, userFid: number): Promise<boolean> {
     if (!this.isConnected) {
-      throw new Error('Redis not connected')
+      console.error('Redis: Attempting to check payment without verified connection')
+      await this.verifyConnection()
     }
 
     try {
-      const members = await this.redis.smembers(KEYS.PAYMENTS(promptId))
-      return members.length > 0
+      const paymentsKey = KEYS.PAYMENTS(promptId)
+      const payments = await this.redis.smembers(paymentsKey)
+      return payments.length > 0
     } catch (error) {
-      console.error('Error checking user payment:', error)
-      throw error
+      console.error('Redis: Error checking payment status:', error)
+      return false
     }
   }
 
@@ -300,77 +351,27 @@ class RedisStorageAdapter implements StorageInterface {
   async getImageUrl(promptId: string, userFid: number): Promise<string | null> {
     return this.redis.get(KEYS.IMAGE(promptId, userFid))
   }
-
-  async checkPayment(promptId: string, userFid: number): Promise<{ hasPaid: boolean; totalPaid: number }> {
-    const hasPaid = await this.hasUserPaid(promptId, userFid)
-    const totalPaid = await this.hasUserPaid(promptId, userFid) ? 1 : 0
-    return { hasPaid, totalPaid }
-  }
 }
 
 // Helper functions for data operations
-export class RedisHelperClass implements StorageInterface {
-  private redis: Redis
-  private isConnected: boolean = false
+export class RedisHelperClass {
+  private storage: StorageInterface
 
   constructor() {
-    const url = process.env.UPSTASH_REDIS_REST_URL
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN
-
-    if (!url || !token) {
-      console.error('Redis configuration is missing. Please check your environment variables.')
-      throw new Error('Redis configuration is missing')
-    }
-
-    this.redis = new Redis({
-      url,
-      token,
-    })
-  }
-
-  async checkPayment(promptId: string, userFid: number): Promise<{ hasPaid: boolean; totalPaid: number }> {
-    if (!this.isConnected) {
-      throw new Error('Redis not connected')
-    }
-
-    try {
-      const hasPaid = await this.redis.sismember(KEYS.PAYMENTS(promptId), userFid.toString())
-      const totalPaid = await this.redis.scard(KEYS.PAYMENTS(promptId))
-      return { hasPaid: Boolean(hasPaid), totalPaid }
-    } catch (error) {
-      console.error('Error checking payment:', error)
-      throw error
-    }
-  }
-
-  async recordPayment(payment: PaymentStatus): Promise<void> {
-    if (!this.isConnected) {
-      throw new Error('Redis not connected')
-    }
-
-    try {
-      const { promptId, userFid, txHash } = payment
-      const userFidStr = userFid.toString()
-      
-      // Check if already paid
-      const alreadyPaid = await this.redis.sismember(KEYS.PAYMENTS(promptId), userFidStr)
-      if (alreadyPaid) {
-        return
-      }
-
-      // Record payment
-      const paymentDetails = {
-        txHash: txHash || '',
-        timestamp: Date.now().toString()
-      }
-
-      await Promise.all([
-        this.redis.sadd(KEYS.PAYMENTS(promptId), userFidStr),
-        this.redis.hset(KEYS.PAYMENT_DETAILS(promptId, userFidStr), paymentDetails)
-      ])
-    } catch (error) {
-      console.error('Error recording payment:', error)
-      throw error
+    console.log('Redis: Initializing RedisHelperClass')
+    console.log('Redis: Checking environment variables...')
+    console.log('Redis ENV URL:', process.env.UPSTASH_REDIS_REST_URL ? '✅ Set' : '❌ Missing')
+    console.log('Redis ENV TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? '✅ Set' : '❌ Missing')
+    
+    if (typeof window === 'undefined' && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      console.log('Redis: Using RedisStorageAdapter')
+      this.storage = new RedisStorageAdapter(new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN
+      }))
+    } else {
+      console.log('Redis: Using LocalStorageHelper')
+      this.storage = new LocalStorageHelper()
     }
   }
 
@@ -378,12 +379,9 @@ export class RedisHelperClass implements StorageInterface {
   async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
     console.log('Redis: Attempting to create prompt:', prompt)
     try {
-      const result = await this.redis.set(KEYS.PROMPT(prompt.id), prompt)
-      console.log('Redis: Prompt set result:', result)
-      if (!result) {
-        throw new Error('Failed to store prompt in Redis')
-      }
-      return { ...prompt, totalConfessions: 0 }
+      const result = await this.storage.createPrompt(prompt)
+      console.log('Redis: Successfully created prompt:', result)
+      return result
     } catch (error) {
       console.error('Redis: Error creating prompt:', error)
       throw error
@@ -391,56 +389,39 @@ export class RedisHelperClass implements StorageInterface {
   }
 
   async getPrompt(promptId: string): Promise<StoredPrompt | null> {
-    return this.redis.get<StoredPrompt>(KEYS.PROMPT(promptId))
+    return this.storage.getPrompt(promptId)
   }
 
   async getRecentPrompts(limit: number = 20): Promise<string[]> {
-    return this.redis.zrange(KEYS.PROMPT_LIST, 0, limit - 1, { rev: true })
+    return this.storage.getRecentPrompts(limit)
   }
 
   async addConfession(confession: StoredConfession): Promise<void> {
-    await this.redis.set(KEYS.CONFESSION(confession.promptId, confession.userFid), confession)
+    return this.storage.addConfession(confession)
   }
 
   async getConfession(promptId: string, userFid: number): Promise<StoredConfession | null> {
-    return this.redis.get<StoredConfession>(KEYS.CONFESSION(promptId, userFid))
+    return this.storage.getConfession(promptId, userFid)
   }
 
   async getPromptConfessions(promptId: string): Promise<StoredConfession[]> {
-    if (!this.isConnected) {
-      throw new Error('Redis not connected')
-    }
+    return this.storage.getPromptConfessions(promptId)
+  }
 
-    try {
-      const confessionsKey = KEYS.CONFESSIONS_BY_PROMPT(promptId)
-      const data = await this.redis.zrange(confessionsKey, 0, -1) as string[]
-      return data.map(item => JSON.parse(item))
-    } catch (error) {
-      console.error('Redis: Error getting confessions:', error)
-      throw error
-    }
+  async recordPayment(payment: PaymentStatus): Promise<void> {
+    return this.storage.recordPayment(payment)
   }
 
   async hasUserPaid(promptId: string, userFid: number): Promise<boolean> {
-    if (!this.isConnected) {
-      throw new Error('Redis not connected')
-    }
-
-    try {
-      const hasPaid = await this.redis.sismember(KEYS.PAYMENTS(promptId), userFid.toString())
-      return Boolean(hasPaid)
-    } catch (error) {
-      console.error('Error checking user payment:', error)
-      throw error
-    }
+    return this.storage.hasUserPaid(promptId, userFid)
   }
 
   async setImageUrl(promptId: string, userFid: number, imageUrl: string): Promise<void> {
-    await this.redis.set(KEYS.IMAGE(promptId, userFid), imageUrl)
+    return this.storage.setImageUrl(promptId, userFid, imageUrl)
   }
 
   async getImageUrl(promptId: string, userFid: number): Promise<string | null> {
-    return this.redis.get(KEYS.IMAGE(promptId, userFid))
+    return this.storage.getImageUrl(promptId, userFid)
   }
 }
 

@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { StoredConfession, StoredPrompt } from '@/app/lib/types'
+import { StoredPrompt, StoredConfession } from '@/app/lib/redis'
 import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
 import { fetchFarcasterUsers } from '@/app/utils/farcaster'
@@ -89,6 +89,7 @@ const fireConfetti = () => {
 export default function RevealPage({ params }: { params: { id: string } }) {
   const [prompt, setPrompt] = useState<RedisPrompt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [userData, setUserData] = useState<Record<number, FarcasterUser>>({})
   const [showNever, setShowNever] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState('')
@@ -112,11 +113,15 @@ export default function RevealPage({ params }: { params: { id: string } }) {
 
       try {
         const res = await fetch(`/api/prompts/${params.id}/payments?wallet=${address}`)
+        if (!res.ok) {
+          throw new Error('Failed to check payment status')
+        }
         const data = await res.json()
         setHasPaid(data.hasPaid)
         setTotalPaid(data.totalPaid)
       } catch (error) {
         console.error('Error checking payment status:', error)
+        setError('Failed to check payment status')
       }
     }
 
@@ -133,7 +138,6 @@ export default function RevealPage({ params }: { params: { id: string } }) {
 
       if (diff <= 0) {
         setTimeRemaining('EXPIRED')
-        // Only update isExpired if not in development mode
         if (process.env.NODE_ENV !== 'development') {
           setIsExpired(true)
         }
@@ -149,81 +153,76 @@ export default function RevealPage({ params }: { params: { id: string } }) {
       const formattedSeconds = String(seconds).padStart(2, '0')
 
       setTimeRemaining(`${formattedHours}:${formattedMinutes}:${formattedSeconds}`)
-      // Only update isExpired if not in development mode
       if (process.env.NODE_ENV !== 'development') {
         setIsExpired(false)
       }
     }
 
     updateTimeRemaining()
-    const interval = setInterval(updateTimeRemaining, 1000) // Update every second
-
+    const interval = setInterval(updateTimeRemaining, 1000)
     return () => clearInterval(interval)
   }, [prompt?.expiresAt])
 
   useEffect(() => {
     async function fetchPrompt() {
-      console.log('Frontend: Starting to fetch prompt:', params.id)
-      const res = await fetch(`/api/prompts/${params.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (res.status === 404) {
-        console.log('Frontend: Prompt not found')
-        setPrompt(null)
-        setIsLoading(false)
-        return
-      }
-
-      const data = await res.json()
-      console.log('Frontend: Raw API response:', data)
-      console.log('Frontend: Confessions from API:', data.confessions)
-
-      const formattedPrompt = {
-        id: data.id,
-        content: data.content,
-        authorFid: data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0,
-        createdAt: data.createdAt,
-        expiresAt: data.expiresAt,
-        totalConfessions: data.totalConfessions || 0,
-        confessions: Array.isArray(data.confessions) ? data.confessions.map((confession: any) => ({
-          userFid: confession.userFid,
-          type: confession.type,
-          imageUrl: confession.imageUrl,
-          caption: confession.caption,
-          timestamp: confession.timestamp,
-          username: confession.username || String(confession.userFid),
-          profileImage: confession.profileImage || '/images/default.png',
-          userAddress: confession.userAddress || '0x0000000000000000000000000000000000000000'
-        })) : []
-      }
-
-      console.log('Frontend: Formatted prompt data:', formattedPrompt)
-      console.log('Frontend: Formatted confessions:', formattedPrompt.confessions)
-
-      setPrompt(formattedPrompt)
-
-      // Create a map of user data from the confessions
-      const userDataMap: Record<number, FarcasterUser> = {}
-      data.confessions.forEach((confession: any) => {
-        userDataMap[confession.userFid] = {
-          fid: confession.userFid,
-          username: confession.username || String(confession.userFid),
-          display_name: confession.username || String(confession.userFid),
-          pfp_url: confession.profileImage || '/images/default.png',
-          verified_addresses: {
-            eth_addresses: [confession.userAddress || '0x0000000000000000000000000000000000000000']
-          }
+      try {
+        console.log('Frontend: Starting to fetch prompt:', params.id)
+        const res = await fetch(`/api/prompts/${params.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (res.status === 404) {
+          console.log('Frontend: Prompt not found')
+          setPrompt(null)
+          setError('Prompt not found')
+          setIsLoading(false)
+          return
         }
-      })
 
-      console.log('Frontend: Setting user data map:', userDataMap)
-      setUserData(userDataMap)
-      setIsLoading(false)
+        if (!res.ok) {
+          throw new Error('Failed to fetch prompt')
+        }
+
+        const data = await res.json()
+        console.log('Frontend: Raw API response:', data)
+
+        if (!data || !data.id) {
+          throw new Error('Invalid prompt data received')
+        }
+
+        const formattedPrompt = {
+          id: data.id,
+          content: data.content || '',
+          authorFid: data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0,
+          createdAt: data.createdAt || Date.now(),
+          expiresAt: data.expiresAt || Date.now() + 24 * 60 * 60 * 1000,
+          totalConfessions: data.totalConfessions || 0,
+          confessions: Array.isArray(data.confessions) ? data.confessions.map((confession: any) => ({
+            userFid: confession.userFid,
+            type: confession.type,
+            imageUrl: confession.imageUrl,
+            caption: confession.caption,
+            timestamp: confession.timestamp,
+            username: confession.username || String(confession.userFid),
+            profileImage: confession.profileImage || '/images/default.png',
+            userAddress: confession.userAddress || '0x0000000000000000000000000000000000000000'
+          })) : []
+        }
+
+        setPrompt(formattedPrompt)
+        setError(null)
+      } catch (error) {
+        console.error('Error fetching prompt:', error)
+        setError('Failed to load prompt')
+        setPrompt(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
     fetchPrompt()
   }, [params.id])
 
@@ -241,55 +240,36 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   }, [isLoading, hasPaid, isExpired, params.id]);
 
   if (isLoading) {
+    return <LoadingState />
+  }
+
+  if (error) {
     return (
-      <>
-        <StateDebugger
-          hasPaid={hasPaid}
-          setHasPaid={setHasPaid}
-          totalPaid={totalPaid}
-          setTotalPaid={setTotalPaid}
-          isExpired={isExpired}
-          setIsExpired={setIsExpired}
-        />
-        <LoadingState message="Loading confessions..." />
-      </>
+      <div className="min-h-screen bg-[#B02A15] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className={cn("text-[#FCD9A8] text-4xl mb-4", txcPearl.className)}>
+            Oops!
+          </h1>
+          <p className={cn("text-[#FCD9A8] text-xl", neuzeitGrotesk.className)}>
+            {error}
+          </p>
+        </div>
+      </div>
     )
   }
 
   if (!prompt) {
     return (
-      <>
-        <StateDebugger
-          hasPaid={hasPaid}
-          setHasPaid={setHasPaid}
-          totalPaid={totalPaid}
-          setTotalPaid={setTotalPaid}
-          isExpired={isExpired}
-          setIsExpired={setIsExpired}
-        />
-        <div className="min-h-screen bg-[#B02A15] relative">
-          <Image
-            src="/images/background.png"
-            alt="Background"
-            fill
-            className="object-cover"
-          />
-          <div className="min-h-screen border-viewport border-[#B02A15] relative">
-            <div className="flex flex-col items-center justify-center h-full">
-              <h1 className={cn("text-xl text-[#EAC898] mb-4", txcPearl.className)}>Prompt not found</h1>
-              <Link 
-                href="/prompts" 
-                className={cn(
-                  "text-[#EAC898] hover:opacity-80 transition-opacity",
-                  neuzeitGrotesk.className
-                )}
-              >
-                ← Back to prompts
-              </Link>
-            </div>
-          </div>
+      <div className="min-h-screen bg-[#B02A15] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className={cn("text-[#FCD9A8] text-4xl mb-4", txcPearl.className)}>
+            Prompt Not Found
+          </h1>
+          <p className={cn("text-[#FCD9A8] text-xl", neuzeitGrotesk.className)}>
+            The prompt you're looking for doesn't exist or has been deleted.
+          </p>
         </div>
-      </>
+      </div>
     )
   }
 
