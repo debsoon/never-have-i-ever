@@ -13,7 +13,7 @@ import type { Metadata, Viewport } from 'next'
 // Define the frame metadata
 const frameMetadata = {
   version: "next",
-  imageUrl: "/images/framecover.png",
+  imageUrl: "https://debbiedoes.fun/images/framecover.png",
   button: {
     title: "🤫 Start Confessing",
     action: {
