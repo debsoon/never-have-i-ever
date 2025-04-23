@@ -9,6 +9,7 @@ import { CONTRACT_ADDRESS } from '@/app/constants'
 import { cn } from '@/lib/utils'
 import { publicClient } from '@/app/lib/viemClient'
 import { useMiniKit } from "@coinbase/onchainkit/minikit"
+import { useWriteContract } from 'wagmi'
 
 const CONTRACT_ABI = [
   {
@@ -35,112 +36,99 @@ interface PayToRevealTransactionProps {
   variant?: 'button' | 'link'
 }
 
-export function PayToRevealTransaction({ 
-  promptId, 
-  onSuccess, 
-  autoSubmit = false,
-  className,
-  variant = 'button'
-}: PayToRevealTransactionProps) {
-  const { isConnected, address } = useAccount()
-  const { connect, connectors } = useConnect()
-  const [priceInWei, setPriceInWei] = useState<bigint | null>(null)
+export default function PayToRevealTransaction({ promptId, onSuccess, autoSubmit = false, className, variant = 'button' }: PayToRevealTransactionProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [price, setPrice] = useState<bigint | null>(null)
+  const [isConfirmed, setIsConfirmed] = useState(false)
+  const [txHash, setTxHash] = useState<`0x${string}` | null>(null)
+  const { address } = useAccount()
   const { context: miniKitContext } = useMiniKit()
-  const [debugMessage, setDebugMessage] = useState<string | null>(null)
-  
-  const {
-    data: hash,
-    error,
-    isPending,
-    sendTransaction
-  } = useSendTransaction()
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  })
+  const { writeContractAsync } = useWriteContract()
+  const { connect, connectors } = useConnect()
 
   // Fetch price from contract
   useEffect(() => {
     async function fetchPrice() {
       try {
-        setDebugMessage("📦 Fetching price from contract...")
         const price = await publicClient.readContract({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: CONTRACT_ABI,
           functionName: 'getPriceInEth',
         })
-        setPriceInWei(price as bigint)
-        setDebugMessage("✅ Price fetched successfully")
+        setPrice(price as bigint)
       } catch (err) {
         console.error('Error fetching price:', err)
-        setDebugMessage(`❌ Error fetching price: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        setError(err instanceof Error ? err.message : 'Unknown error')
       }
     }
+
     fetchPrice()
   }, [])
 
   // Function to prepare and send transaction
   async function prepareAndSendTransaction() {
-    if (!isConnected) {
-      setDebugMessage("🔌 Connecting wallet...")
+    if (!address) {
+      setError("🔌 Connecting wallet...")
       connect({ connector: connectors[0] })
       return
     }
 
-    if (!priceInWei) {
-      setDebugMessage("❌ Price not loaded yet")
+    if (!price) {
+      setError("❌ Price not loaded yet")
       return
     }
 
     try {
-      setDebugMessage("📦 Preparing transaction...")
-      const data = encodeFunctionData({
+      setIsLoading(true)
+      setError("📤 Sending transaction...")
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS as `0x${string}`,
         abi: CONTRACT_ABI,
         functionName: 'payToReveal',
         args: [BigInt(promptId)]
       })
+      setTxHash(hash)
+      setIsConfirmed(true)
+      setError("✅ Transaction sent successfully")
 
-      setDebugMessage("📤 Sending transaction...")
-      sendTransaction({
-        to: CONTRACT_ADDRESS as `0x${string}`,
-        data,
-        value: priceInWei
-      })
+      // Call onSuccess callback
+      if (onSuccess) {
+        onSuccess(hash)
+      }
     } catch (err) {
       console.error('Error:', err)
-      setDebugMessage(`❌ Transaction error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setIsLoading(false)
     }
   }
 
   // Auto-submit when component mounts if autoSubmit is true
   useEffect(() => {
-    if (autoSubmit && !hash && !isPending && !error && priceInWei) {
-      setDebugMessage("🔄 Auto-submitting transaction...")
+    if (autoSubmit && !txHash && !isLoading && !error && price) {
       prepareAndSendTransaction()
     }
-  }, [isConnected, autoSubmit, hash, isPending, error, priceInWei])
+  }, [address, autoSubmit, txHash, isLoading, error, price])
 
-  // Form submit handler for manual submission
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setDebugMessage("🔄 Manual transaction submission...")
+  // Handle button click
+  const handleClick = async () => {
     await prepareAndSendTransaction()
   }
 
   // Call onSuccess and record payment when transaction is confirmed
   useEffect(() => {
     async function handleConfirmed() {
-      if (!isConfirmed || !hash || !address || !miniKitContext?.user?.fid) {
-        if (!isConfirmed) setDebugMessage("⏳ Waiting for transaction confirmation...")
-        if (!hash) setDebugMessage("❌ No transaction hash available")
-        if (!address) setDebugMessage("❌ No wallet address available")
-        if (!miniKitContext?.user?.fid) setDebugMessage("❌ No user FID available")
+      if (!isConfirmed || !txHash || !address || !miniKitContext?.user?.fid) {
+        if (!isConfirmed) setError("⏳ Waiting for transaction confirmation...")
+        if (!txHash) setError("❌ No transaction hash available")
+        if (!address) setError("❌ No wallet address available")
+        if (!miniKitContext?.user?.fid) setError("❌ No user FID available")
         return
       }
 
       let responseData;
       try {
-        setDebugMessage("📦 Transaction confirmed, preparing payment API request...")
         // Record payment in Redis
         const response = await fetch(`/api/prompts/${promptId}/payments`, {
           method: 'POST',
@@ -148,7 +136,7 @@ export function PayToRevealTransaction({
           body: JSON.stringify({ 
             walletAddress: address,
             userFid: miniKitContext.user.fid,
-            txHash: hash
+            txHash: txHash
           })
         })
 
@@ -158,67 +146,51 @@ export function PayToRevealTransaction({
           throw new Error(responseData.error || 'Failed to record payment')
         }
 
-        setDebugMessage(`✅ Payment API Response:\n${JSON.stringify(responseData.debugLog, null, 2)}`)
-
         // Call onSuccess callback
         if (onSuccess) {
-          setDebugMessage("🔄 Calling onSuccess callback...")
-          onSuccess(hash)
+          onSuccess(txHash)
         }
       } catch (err) {
         console.error('Error recording payment:', err)
-        setDebugMessage(`❌ Payment API Error:\n${responseData?.error || 'Unknown'}\n\nStack:\n${responseData?.stack || 'No stack trace'}\n\nSubmitted:\n${JSON.stringify(responseData?.input || {
+        setError(`❌ Payment API Error:\n${responseData?.error || 'Unknown'}\n\nStack:\n${responseData?.stack || 'No stack trace'}\n\nSubmitted:\n${JSON.stringify(responseData?.input || {
           walletAddress: address,
           userFid: miniKitContext?.user?.fid,
-          txHash: hash
+          txHash: txHash
         }, null, 2)}`)
       }
     }
 
     handleConfirmed()
-  }, [isConfirmed, hash, onSuccess, promptId, address, miniKitContext?.user?.fid])
+  }, [isConfirmed, txHash, onSuccess, promptId, address, miniKitContext?.user?.fid])
 
   return (
-    <form onSubmit={submit} className={cn("flex flex-col gap-4 w-full", className)}>
-      <button 
-        disabled={isPending || isConfirming || !priceInWei}
-        type="submit"
-        className={cn(
-          variant === 'button' ? [
-            "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
-            "text-3xl hover:bg-[#8f2211] transition-colors",
-            "border-2 border-[#B02A15]",
-            txcPearl.className
-          ] : [
-            "text-[#B02A15] text-lg underline hover:opacity-80 transition-opacity inline-block",
-            neuzeitGrotesk.className
-          ]
-        )}
-      >
-        {variant === 'button' ? (
-          isPending ? 'Confirming...' :
-          isConfirming ? 'Processing...' :
-          !priceInWei ? 'Loading...' :
-          'REVEAL NOW'
-        ) : (
-          isPending ? 'Confirming...' :
-          isConfirming ? 'Processing...' :
-          !priceInWei ? 'Loading...' :
-          'Pay $1 to see who \'fessed up.'
-        )}
-      </button>
-
+    <div className={cn("flex flex-col items-center gap-4", className)}>
       {error && (
-        <p className={cn("text-[#B02A15] text-sm text-center", neuzeitGrotesk.className)}>
-          {(error as BaseError).shortMessage || error.message}
-        </p>
+        <div className="text-red-500 text-center">
+          {error}
+        </div>
       )}
-
-      {debugMessage && (
-        <p className={cn("text-sm text-center text-[#B02A15] whitespace-pre-wrap", neuzeitGrotesk.className)}>
-          Debug: {debugMessage}
-        </p>
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#B02A15]" />
+          <span className={cn("text-[#B02A15]", neuzeitGrotesk.className)}>
+            Processing...
+          </span>
+        </div>
+      ) : (
+        <button
+          onClick={handleClick}
+          disabled={isLoading || !address || !price}
+          className={cn(
+            "bg-[#B02A15] text-[#FCD9A8] px-6 py-3 rounded-full",
+            "hover:bg-[#8f2211] transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            txcPearl.className
+          )}
+        >
+          {variant === 'button' ? 'Pay to Reveal' : 'Pay to Reveal'}
+        </button>
       )}
-    </form>
+    </div>
   )
 } 

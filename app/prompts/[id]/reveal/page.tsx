@@ -17,7 +17,7 @@ import { StateDebugger } from '@/app/components/StateDebugger'
 import confetti from 'canvas-confetti'
 import { LoadingState } from '@/app/components/LoadingState'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
-import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
+import PayToRevealTransaction from '@/app/components/PayToRevealTransaction'
 
 interface RedisPrompt {
   id: string
@@ -327,13 +327,16 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                     {timeRemaining}
                   </div>
                   <div className="w-full h-[1px] bg-[#B02A15] mb-4" />
-                  <h1 className={cn("text-7xl text-[#B02A15] mb-4 leading-[1.1]", txcPearl.className)}>
-                    NEVER HAVE<br />I EVER...
-                  </h1>
+                  <h1 className={cn("text-6xl text-center text-[#B02A15] whitespace-nowrap mb-0", txcPearl.className)}>
+                NEVER HAVE
+              </h1>
+              <h1 className={cn("text-6xl text-center text-[#B02A15] whitespace-nowrap mb-2", txcPearl.className)}>
+                I EVER...
+              </h1>
                 </>
               )}
               
-              <div className={cn("text-[#B02A15] text-4xl mb-4", neuzeitGrotesk.className)}>
+              <div className={cn("text-[#B02A15] text-3xl mb-4", neuzeitGrotesk.className)}>
                 {prompt.content}
               </div>
 

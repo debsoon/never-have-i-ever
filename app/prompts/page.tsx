@@ -23,6 +23,7 @@ interface PromptWithStatus extends StoredPrompt {
   status: 'new' | 'expiring' | 'ended' | 'active'
   spicy?: boolean
   hasResponded: boolean
+  hasPaid: boolean
 }
 
 type TabType = 'all' | 'created' | 'responded'
@@ -74,10 +75,15 @@ async function loadPrompts(userFid?: number): Promise<PromptWithStatus[]> {
 
     // Get user's interactions if we have a userFid
     let userInteractions = null
+    let userPayments = null
     if (userFid) {
       const interactionsResponse = await fetch(`/api/users/${userFid}/interactions`)
       if (interactionsResponse.ok) {
         userInteractions = await interactionsResponse.json()
+      }
+      const paymentsResponse = await fetch(`/api/users/${userFid}/payments`)
+      if (paymentsResponse.ok) {
+        userPayments = await paymentsResponse.json()
       }
     }
 
@@ -92,7 +98,8 @@ async function loadPrompts(userFid?: number): Promise<PromptWithStatus[]> {
         totalConfessions: prompt.totalConfessions || 0,
         status: getPromptStatus(prompt),
         spicy: isSpicyPrompt(prompt.content),
-        hasResponded: userInteractions?.respondedPrompts?.includes(prompt.id) || false
+        hasResponded: userInteractions?.respondedPrompts?.includes(prompt.id) || false,
+        hasPaid: userPayments?.paidPrompts?.includes(prompt.id) || false
       }
       console.log('Transformed prompt:', promptWithStatus)
       return promptWithStatus
@@ -217,21 +224,38 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
         </div>
 
         <div className="flex gap-1">
-          <Link href={`/prompts/${prompt.id}`}>
+          {prompt.status === 'ended' ? (
             <button 
-              className={`bg-[#B02A15] text-[#FCD9A8] px-3 py-1 rounded-full
-                        text-3xl whitespace-nowrap hover:bg-[#8f2211] transition-colors
-                        border-2 border-[#B02A15] uppercase tracking-wider`}
+              className={cn(
+                "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
+                txcPearl.className,
+                "bg-transparent text-[#BEA98D] border-2 border-[#BEA98D] cursor-not-allowed"
+              )}
+              disabled
             >
               CONFESS
             </button>
-          </Link>
+          ) : (
+            <Link href={prompt.hasResponded ? `/prompts/${prompt.id}/success` : `/prompts/${prompt.id}`}>
+              <button 
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-xl uppercase tracking-wider",
+                  txcPearl.className,
+                  "bg-[#B02A15] text-[#FCD9A8] border-2 border-[#B02A15] hover:bg-[#8f2211] transition-colors"
+                )}
+              >
+                CONFESS
+              </button>
+            </Link>
+          )}
           <Link href={
             prompt.status === 'ended' 
               ? `/prompts/${prompt.id}/reveal`
-              : prompt.hasResponded 
-                ? `/prompts/${prompt.id}/success` 
-                : `/prompts/${prompt.id}`
+              : prompt.hasResponded && prompt.hasPaid
+                ? `/prompts/${prompt.id}/reveal`
+                : prompt.hasResponded
+                  ? `/prompts/${prompt.id}/success`
+                  : `/prompts/${prompt.id}`
           }>
             <button className={cn(
               "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
@@ -572,9 +596,11 @@ export default function PromptsPage() {
                             <Link href={
                               prompt.status === 'ended' 
                                 ? `/prompts/${prompt.id}/reveal`
-                                : prompt.hasResponded 
-                                  ? `/prompts/${prompt.id}/success` 
-                                  : `/prompts/${prompt.id}`
+                                : prompt.hasResponded && prompt.hasPaid
+                                  ? `/prompts/${prompt.id}/reveal`
+                                  : prompt.hasResponded
+                                    ? `/prompts/${prompt.id}/success`
+                                    : `/prompts/${prompt.id}`
                             }>
                               <button className={cn(
                                 "px-1.5 py-0.5 bg-transparent text-[#B02A15] rounded-full",
