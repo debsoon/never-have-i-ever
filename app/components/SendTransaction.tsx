@@ -4,7 +4,9 @@ import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceip
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
 import { neuzeitGrotesk } from '@/utils/fonts'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { publicClient } from '@/app/lib/viemClient'
+import { cn } from '@/lib/utils'
 
 const CONTRACT_ABI = [
   {
@@ -16,11 +18,15 @@ const CONTRACT_ABI = [
       { name: 'durationInHours', type: 'uint256' }
     ],
     outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'getPriceInEth',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
   }
 ] as const
-
-// Price in wei (0.00063 ETH = ~$1 at $1577.10/ETH)
-const PRICE_IN_WEI = BigInt(630_000_000_000_000)
 
 interface SendTransactionProps {
   contractAddress: `0x${string}`
@@ -30,9 +36,16 @@ interface SendTransactionProps {
   hideDebug?: boolean
 }
 
-export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true, prompt, hideDebug = false }: SendTransactionProps) {
-  const { address, isConnected } = useAccount()
+export function SendTransaction({ 
+  contractAddress, 
+  onSuccess, 
+  autoSubmit = false,
+  prompt,
+  hideDebug = false
+}: SendTransactionProps) {
+  const { isConnected } = useAccount()
   const { connect, connectors } = useConnect()
+  const [priceInWei, setPriceInWei] = useState<bigint | null>(null)
   
   const {
     data: hash,
@@ -45,15 +58,32 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true,
     hash,
   })
 
+  // Fetch price from contract
+  useEffect(() => {
+    async function fetchPrice() {
+      try {
+        const price = await publicClient.readContract({
+          address: contractAddress,
+          abi: CONTRACT_ABI,
+          functionName: 'getPriceInEth',
+        })
+        setPriceInWei(price as bigint)
+      } catch (err) {
+        console.error('Error fetching price:', err)
+      }
+    }
+    fetchPrice()
+  }, [contractAddress])
+
   // Function to prepare and send transaction
   async function prepareAndSendTransaction() {
-    if (!isConnected || !address) {
+    if (!isConnected) {
       connect({ connector: connectors[0] })
       return
     }
 
-    if (!prompt) {
-      console.error('No prompt provided')
+    if (!priceInWei) {
+      console.error('Price not loaded yet')
       return
     }
 
@@ -61,13 +91,13 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true,
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'createPrompt',
-        args: [prompt, BigInt(24)] // 24 hours
+        args: [prompt || '', BigInt(24)] // 24 hours duration
       })
 
       sendTransaction({
         to: contractAddress,
         data,
-        value: PRICE_IN_WEI
+        value: priceInWei
       })
     } catch (err) {
       console.error('Error:', err)
@@ -76,10 +106,10 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true,
 
   // Auto-submit when component mounts if autoSubmit is true
   useEffect(() => {
-    if (autoSubmit && !hash && !isPending && !error) {
+    if (autoSubmit && !hash && !isPending && !error && priceInWei) {
       prepareAndSendTransaction()
     }
-  }, [isConnected, autoSubmit, hash, isPending, error])
+  }, [isConnected, autoSubmit, hash, isPending, error, priceInWei])
 
   // Form submit handler for manual submission
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -97,31 +127,24 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true,
   return (
     <form onSubmit={submit} className="flex flex-col gap-4 w-full">
       <button 
-        disabled={isPending || isConfirming}
+        disabled={isPending || isConfirming || !priceInWei}
         type="submit"
-        className="w-full bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider"
+        className={cn(
+          "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
+          "text-3xl hover:bg-[#8f2211] transition-colors",
+          "border-2 border-[#B02A15]",
+          neuzeitGrotesk.className
+        )}
       >
-        {isPending ? 'Check your wallet...' :
-         isConfirming ? 'Creating prompt...' :
-         !isConnected ? 'CONNECT WALLET' :
-         'PAY $1 TO SUBMIT'}
+        {isPending ? 'Confirming...' :
+         isConfirming ? 'Processing...' :
+         !priceInWei ? 'Loading...' :
+         'CONFIRM PROMPT'}
       </button>
 
-      {isConnected && !hideDebug && (
-        <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-          Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-        </p>
-      )}
-
-      {hash && !hideDebug && (
-        <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-          Transaction Hash: {hash}
-        </p>
-      )}
-
-      {error && !hideDebug && (
-        <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
-          Error: {(error as BaseError).shortMessage || error.message}
+      {!hideDebug && error && (
+        <p className={cn("text-[#B02A15] text-sm text-center", neuzeitGrotesk.className)}>
+          {(error as BaseError).shortMessage || error.message}
         </p>
       )}
     </form>

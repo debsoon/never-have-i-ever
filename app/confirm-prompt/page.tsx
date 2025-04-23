@@ -231,9 +231,9 @@ function ConfirmPromptContent() {
   }
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-start pt-8 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
+    <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-8">
-        <div className="w-full flex justify-end mb-2">
+        <div className="w-full flex justify-end mb-4">
           <button 
             onClick={() => router.back()}
             className="hover:opacity-80 transition-opacity"
@@ -247,11 +247,11 @@ function ConfirmPromptContent() {
           </button>
         </div>
         <div className="w-full p-2 rounded-lg">
-          <h2 className={`text-[#B02A15] text-xl mb-1 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
-          <div className="w-full h-[1px] bg-[#B02A15] mb-2" />
-          <div className="text-[#B02A15] text-6xl text-center mb-2">NEVER HAVE<br />I EVER...</div>
-          <div className={`text-[#B02A15] text-4xl text-center mb-4 ${neuzeitGrotesk.className}`}>{prompt}</div>
-          <div className="bg-[#FFE5E5] p-3 rounded-lg mb-4">
+          <h2 className={`text-[#B02A15] text-xl mb-2 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
+          <div className="w-full h-[1px] bg-[#B02A15] mb-4" />
+          <div className="text-[#B02A15] text-6xl text-center mb-4">NEVER HAVE<br />I EVER...</div>
+          <div className={`text-[#B02A15] text-4xl text-center mb-8 ${neuzeitGrotesk.className}`}>{prompt}</div>
+          <div className="bg-[#FFE5E5] p-4 rounded-lg mb-8">
             <div className="flex items-start gap-2 text-[#B02A15]">
               <Image src="/images/icons/triangle_warning.png" alt="Warning" width={20} height={20} />
               <p className={`${neuzeitGrotesk.className} text-[15px]`}>
@@ -281,17 +281,6 @@ function ConfirmPromptContent() {
               prompt={prompt}
               hideDebug={true}
             />
-          )}
-
-          {debugMessage && (
-            <div className="w-full mt-4 p-4 bg-white rounded-lg max-h-[300px] overflow-y-auto">
-              <h3 className="text-[#B02A15] text-sm font-bold mb-2">Debug Log:</h3>
-              <div className="space-y-1">
-                <p className="text-gray-800 text-xs whitespace-pre-wrap">
-                  {debugMessage}
-                </p>
-              </div>
-            </div>
           )}
         </div>
       </div>

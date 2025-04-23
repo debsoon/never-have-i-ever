@@ -4,9 +4,10 @@ import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceip
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
 import { neuzeitGrotesk, txcPearl } from '@/utils/fonts'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { CONTRACT_ADDRESS } from '@/app/constants'
 import { cn } from '@/lib/utils'
+import { publicClient } from '@/app/lib/viemClient'
 
 const CONTRACT_ABI = [
   {
@@ -15,6 +16,13 @@ const CONTRACT_ABI = [
     stateMutability: 'nonpayable',
     inputs: [{ name: 'promptId', type: 'uint256' }],
     outputs: [],
+  },
+  {
+    name: 'getPriceInEth',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
   }
 ] as const
 
@@ -35,6 +43,7 @@ export function PayToRevealTransaction({
 }: PayToRevealTransactionProps) {
   const { isConnected } = useAccount()
   const { connect, connectors } = useConnect()
+  const [priceInWei, setPriceInWei] = useState<bigint | null>(null)
   
   const {
     data: hash,
@@ -47,10 +56,32 @@ export function PayToRevealTransaction({
     hash,
   })
 
+  // Fetch price from contract
+  useEffect(() => {
+    async function fetchPrice() {
+      try {
+        const price = await publicClient.readContract({
+          address: CONTRACT_ADDRESS as `0x${string}`,
+          abi: CONTRACT_ABI,
+          functionName: 'getPriceInEth',
+        })
+        setPriceInWei(price as bigint)
+      } catch (err) {
+        console.error('Error fetching price:', err)
+      }
+    }
+    fetchPrice()
+  }, [])
+
   // Function to prepare and send transaction
   async function prepareAndSendTransaction() {
     if (!isConnected) {
       connect({ connector: connectors[0] })
+      return
+    }
+
+    if (!priceInWei) {
+      console.error('Price not loaded yet')
       return
     }
 
@@ -64,7 +95,7 @@ export function PayToRevealTransaction({
       sendTransaction({
         to: CONTRACT_ADDRESS as `0x${string}`,
         data,
-        value: BigInt(0)
+        value: priceInWei
       })
     } catch (err) {
       console.error('Error:', err)
@@ -73,10 +104,10 @@ export function PayToRevealTransaction({
 
   // Auto-submit when component mounts if autoSubmit is true
   useEffect(() => {
-    if (autoSubmit && !hash && !isPending && !error) {
+    if (autoSubmit && !hash && !isPending && !error && priceInWei) {
       prepareAndSendTransaction()
     }
-  }, [isConnected, autoSubmit, hash, isPending, error])
+  }, [isConnected, autoSubmit, hash, isPending, error, priceInWei])
 
   // Form submit handler for manual submission
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -94,7 +125,7 @@ export function PayToRevealTransaction({
   return (
     <form onSubmit={submit} className={cn("flex flex-col gap-4 w-full", className)}>
       <button 
-        disabled={isPending || isConfirming}
+        disabled={isPending || isConfirming || !priceInWei}
         type="submit"
         className={cn(
           variant === 'button' ? [
@@ -111,10 +142,12 @@ export function PayToRevealTransaction({
         {variant === 'button' ? (
           isPending ? 'Confirming...' :
           isConfirming ? 'Processing...' :
+          !priceInWei ? 'Loading...' :
           'REVEAL NOW'
         ) : (
           isPending ? 'Confirming...' :
           isConfirming ? 'Processing...' :
+          !priceInWei ? 'Loading...' :
           'Pay $1 to see who \'fessed up.'
         )}
       </button>
