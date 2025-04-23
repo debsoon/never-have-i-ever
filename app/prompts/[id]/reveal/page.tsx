@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { StoredPrompt, StoredConfession } from '@/app/lib/redis'
+import { StoredConfession, StoredPrompt } from '@/app/lib/types'
 import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
 import { fetchFarcasterUsers } from '@/app/utils/farcaster'
@@ -188,8 +188,8 @@ export default function RevealPage({ params }: { params: { id: string } }) {
         authorFid: data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0,
         createdAt: data.createdAt,
         expiresAt: data.expiresAt,
-        totalConfessions: data.totalConfessions,
-        confessions: data.confessions.map((confession: any) => ({
+        totalConfessions: data.totalConfessions || 0,
+        confessions: Array.isArray(data.confessions) ? data.confessions.map((confession: any) => ({
           userFid: confession.userFid,
           type: confession.type,
           imageUrl: confession.imageUrl,
@@ -198,7 +198,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
           username: confession.username || String(confession.userFid),
           profileImage: confession.profileImage || '/images/default.png',
           userAddress: confession.userAddress || '0x0000000000000000000000000000000000000000'
-        }))
+        })) : []
       }
 
       console.log('Frontend: Formatted prompt data:', formattedPrompt)

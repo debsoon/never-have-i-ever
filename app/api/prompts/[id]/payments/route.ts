@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { kv } from '@vercel/kv'
-import { StoredPrompt } from '@/app/lib/redis'
+import { redisHelper } from '@/app/lib/redis'
 
 // GET /api/prompts/[id]/payments - Check if a wallet has paid
 export async function GET(
@@ -15,15 +14,8 @@ export async function GET(
   }
 
   try {
-    // More efficient check using SISMEMBER
-    const hasPaid = await kv.sismember(`prompt:${params.id}:payments`, walletAddress)
-    // Get total paid count
-    const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
-    
-    return NextResponse.json({
-      hasPaid: Boolean(hasPaid),
-      totalPaid
-    })
+    const { hasPaid, totalPaid } = await redisHelper.checkPayment(params.id, walletAddress)
+    return NextResponse.json({ hasPaid, totalPaid })
   } catch (error) {
     console.error('Error checking payment status:', error)
     return NextResponse.json({ error: 'Failed to check payment status' }, { status: 500 })
@@ -45,34 +37,12 @@ export async function POST(
     // Normalize wallet address to lowercase
     const normalizedAddress = walletAddress.toLowerCase()
 
-    // Check if payment already recorded using SISMEMBER
-    const alreadyPaid = await kv.sismember(`prompt:${params.id}:payments`, normalizedAddress)
-    if (alreadyPaid) {
-      const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
-      return NextResponse.json({ 
-        message: 'Payment already recorded',
-        hasPaid: true,
-        totalPaid
-      })
-    }
-
-    // Record the payment details
-    await Promise.all([
-      // Add to payments set
-      kv.sadd(`prompt:${params.id}:payments`, normalizedAddress),
-      // Store payment details
-      kv.hset(`prompt:${params.id}:payment:${normalizedAddress}`, {
-        userFid,
-        txHash,
-        timestamp: Date.now()
-      })
-    ])
-
-    const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+    // Record the payment
+    const { hasPaid, totalPaid } = await redisHelper.recordPayment(params.id, normalizedAddress, userFid, txHash)
 
     return NextResponse.json({
       message: 'Payment recorded successfully',
-      hasPaid: true,
+      hasPaid,
       totalPaid
     })
   } catch (error) {

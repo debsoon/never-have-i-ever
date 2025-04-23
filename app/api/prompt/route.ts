@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
-import type { StoredConfession } from '@/app/lib/redis'
+import type { StoredConfession } from '@/app/lib/types'
 
 export async function GET(
   request: Request,
@@ -66,6 +66,7 @@ export async function GET(
     )
   }
 } 
+ 
  
  
  
