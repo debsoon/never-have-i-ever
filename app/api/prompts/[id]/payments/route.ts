@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { kv } from '@vercel/kv'
+import { Redis } from '@upstash/redis'
 import { StoredPrompt } from '@/app/lib/redis'
+
+// Initialize Redis client
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+})
 
 // GET /api/prompts/[id]/payments - Check if a user has paid
 export async function GET(
@@ -28,9 +34,9 @@ export async function GET(
     })
 
     // Check if user has paid using SISMEMBER
-    const hasPaid = await kv.sismember(`prompt:${params.id}:payments`, userFid)
+    const hasPaid = await redis.sismember(`prompt:${params.id}:payments`, userFid)
     // Get total paid count
-    const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+    const totalPaid = await redis.scard(`prompt:${params.id}:payments`)
     
     console.log('[Payment API] Payment status check result:', {
       hasPaid: Boolean(hasPaid),
@@ -100,13 +106,13 @@ export async function POST(
     })
 
     // Check if payment already recorded using SISMEMBER
-    const alreadyPaid = await kv.sismember(`prompt:${params.id}:payments`, userFid.toString())
+    const alreadyPaid = await redis.sismember(`prompt:${params.id}:payments`, userFid.toString())
     if (alreadyPaid) {
       console.log('[Payment API] Payment already recorded:', {
         promptId: params.id,
         userFid
       })
-      const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+      const totalPaid = await redis.scard(`prompt:${params.id}:payments`)
       return NextResponse.json({ 
         message: 'Payment already recorded',
         hasPaid: true,
@@ -125,16 +131,16 @@ export async function POST(
     console.log('📝 [Payment API] Writing to Redis...')
     await Promise.all([
       // Add to payments set
-      kv.sadd(`prompt:${params.id}:payments`, userFid.toString()),
+      redis.sadd(`prompt:${params.id}:payments`, userFid.toString()),
       // Store payment details
-      kv.hset(`prompt:${params.id}:payment:${userFid}`, {
+      redis.hset(`prompt:${params.id}:payment:${userFid}`, {
         userAddress: normalizedAddress,
         txHash,
         timestamp: Date.now()
       })
     ])
 
-    const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+    const totalPaid = await redis.scard(`prompt:${params.id}:payments`)
     console.log('✅ [Payment API] Payment recorded successfully:', {
       promptId: params.id,
       userFid,
