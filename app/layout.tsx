@@ -13,7 +13,7 @@ import type { Metadata, Viewport } from 'next'
 // Define the frame metadata
 const frameMetadata = {
   version: "next",
-  image: "/images/framecover.png",
+  imageUrl: "/images/framecover.png",
   button: {
     title: "🤫 Start Confessing",
     action: {
@@ -30,12 +30,12 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Never Have I Ever',
-  description: 'A social game of confessions and revelations',
+  title: 'Debbie Does Never Have I Ever',
+  description: 'A onchain game of confessions and revelations',
   openGraph: {
-    title: 'Never Have I Ever',
-    description: 'A social game of confessions and revelations',
-    images: ['/images/splash/header.png'],
+    title: 'Debbie Does Never Have I Ever',
+    description: 'A onchain game of confessions and revelations',
+    images: ['/images/framecover.png'],
   },
   other: {
     'fc:frame': JSON.stringify(frameMetadata),
