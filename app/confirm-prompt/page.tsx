@@ -71,10 +71,24 @@ function ConfirmPromptContent() {
   }
 
   async function handleSuccess(txHash: `0x${string}`) {
-    // Check if we've already processed this transaction
+    // Even if we've processed this transaction before, we should check if we have a valid promptId
     if (processedTxHashes.has(txHash)) {
-      setDebugMessage(`🔄 Already processed transaction ${txHash}`)
-      return
+      setDebugMessage(`🔄 Found cached transaction ${txHash}, verifying prompt data...`)
+      // If we have a promptId but Redis failed, we should retry Redis
+      if (promptId) {
+        try {
+          // Check if prompt exists in Redis
+          const existingPrompt = await redisHelper.getPrompt(promptId)
+          if (existingPrompt) {
+            setDebugMessage('✅ Prompt already exists in Redis! Redirecting...')
+            setProcessingComplete(true)
+            return
+          }
+          setDebugMessage('⚠️ Prompt not found in Redis, retrying storage...')
+        } catch (err) {
+          setDebugMessage('⚠️ Failed to check Redis, will retry storage...')
+        }
+      }
     }
 
     // Clear any stale state
@@ -84,7 +98,9 @@ function ConfirmPromptContent() {
     try {
       setIsProcessing(true)
       setProcessingComplete(false)
-      setPromptId(null)
+      if (!promptId) {
+        setPromptId(null)
+      }
       setDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
       
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
@@ -150,6 +166,11 @@ function ConfirmPromptContent() {
 
           const { fid } = userData
 
+          // Validate promptId before Redis storage
+          if (!extractedPromptId || typeof extractedPromptId !== 'string') {
+            throw new Error(`Invalid promptId type: ${typeof extractedPromptId}, value: ${extractedPromptId}`)
+          }
+
           // Redis storage
           const redisData = {
             id: extractedPromptId,
@@ -159,9 +180,38 @@ function ConfirmPromptContent() {
             expiresAt: Date.now() + 86400 * 1000,
           }
 
-          await redisHelper.createPrompt(redisData)
-          setDebugMessage('✅ Successfully saved to Redis! Redirecting in 3 seconds...')
-          
+          // Log the full payload before Redis write
+          setDebugMessage(`📦 Writing to Redis:\n${JSON.stringify(redisData, null, 2)}`)
+
+          try {
+            // Attempt Redis write with fallback ID if needed
+            const fallbackId = Date.now().toString()
+            const dataToWrite = {
+              ...redisData,
+              id: extractedPromptId || fallbackId
+            }
+
+            await redisHelper.createPrompt(dataToWrite)
+            setDebugMessage(`✅ Redis write successful!\nPrompt ID: ${dataToWrite.id}\nFallback used: ${!extractedPromptId}`)
+
+            // Verify the write by reading it back
+            try {
+              const savedPrompt = await redisHelper.getPrompt(dataToWrite.id)
+              if (!savedPrompt) {
+                throw new Error('Prompt not found after write')
+              }
+              setDebugMessage(`✅ Redis write verified! Data retrieved successfully.`)
+            } catch (verifyErr) {
+              setDebugMessage(`⚠️ Redis write verification failed: ${verifyErr instanceof Error ? verifyErr.message : 'Unknown error'}`)
+            }
+          } catch (redisErr) {
+            const errorDetails = redisErr instanceof Error 
+              ? `${redisErr.message}\n${redisErr.stack}`
+              : JSON.stringify(redisErr)
+            setDebugMessage(`❌ Redis write failed:\nError: ${errorDetails}\nPayload attempted: ${JSON.stringify(redisData, null, 2)}`)
+            throw redisErr
+          }
+
           await sendNotification({
             title: 'Prompt Submitted!',
             body: `Your "Never Have I Ever" prompt has been posted.`,
@@ -170,7 +220,8 @@ function ConfirmPromptContent() {
           setProcessingComplete(true)
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          setDebugMessage(`❌ Error saving prompt data: ${errorMessage}. Please contact support with promptId: ${extractedPromptId}`)
+          const errorStack = err instanceof Error ? err.stack : ''
+          setDebugMessage(`❌ Error saving prompt data:\nMessage: ${errorMessage}\nStack: ${errorStack}\nPrompt ID: ${extractedPromptId}`)
           // Don't throw here - we still want to redirect to the prompt page even if Redis fails
           setProcessingComplete(true)
         }
