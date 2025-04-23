@@ -1,5 +1,5 @@
 import { Prompt } from '@/app/types/prompt'
-import { StoredPrompt } from '@/app/lib/redis'
+import { StoredPrompt } from '@/app/lib/types'
 
 type PromptAccessResult = {
   canAccess: boolean

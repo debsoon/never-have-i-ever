@@ -138,11 +138,22 @@ class LocalStorageHelper implements StorageInterface {
 
 // Redis storage adapter
 class RedisStorageAdapter implements StorageInterface {
+  private redis: Redis
   private isConnected: boolean = false
 
-  constructor(private redis: Redis) {
-    console.log('Redis: Initializing RedisStorageAdapter with URL:', process.env.UPSTASH_REDIS_REST_URL)
-    this.verifyConnection()
+  constructor() {
+    const url = process.env.UPSTASH_REDIS_REST_URL
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN
+
+    if (!url || !token) {
+      console.error('Redis configuration is missing. Please check your environment variables.')
+      throw new Error('Redis configuration is missing')
+    }
+
+    this.redis = new Redis({
+      url,
+      token,
+    })
   }
 
   private async verifyConnection() {
@@ -303,22 +314,18 @@ export class RedisHelperClass implements StorageInterface {
   private isConnected: boolean = false
 
   constructor() {
-    this.redis = new Redis({
-      url: process.env.REDIS_URL!,
-      token: process.env.REDIS_TOKEN!
-    })
-    this.verifyConnection()
-  }
+    const url = process.env.UPSTASH_REDIS_REST_URL
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN
 
-  private async verifyConnection() {
-    try {
-      await this.redis.ping()
-      this.isConnected = true
-      console.log('Redis connection verified')
-    } catch (error) {
-      console.error('Redis connection failed:', error)
-      this.isConnected = false
+    if (!url || !token) {
+      console.error('Redis configuration is missing. Please check your environment variables.')
+      throw new Error('Redis configuration is missing')
     }
+
+    this.redis = new Redis({
+      url,
+      token,
+    })
   }
 
   async checkPayment(promptId: string, userFid: number): Promise<{ hasPaid: boolean; totalPaid: number }> {

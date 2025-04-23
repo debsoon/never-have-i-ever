@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { formatTimeLeft, formatTimeAgo } from '@/app/lib/utils'
-import { StoredPrompt, StoredConfession } from '@/app/lib/redis'
+import { StoredPrompt, StoredConfession } from '@/app/lib/types'
 import { ConfessionModal } from '@/app/components/ConfessionModal'
 import { txcPearl, neuzeitGrotesk } from '@/app/utils/fonts'
 import { cn } from '@/lib/utils'
@@ -15,13 +15,7 @@ import { useRouter } from 'next/navigation'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 
-interface RedisPrompt {
-  id: string
-  content: string
-  authorFid: number
-  createdAt: number
-  expiresAt: number
-  totalConfessions: number
+interface RedisPrompt extends StoredPrompt {
   confessions: StoredConfession[]
 }
 
