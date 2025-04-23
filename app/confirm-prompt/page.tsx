@@ -277,7 +277,7 @@ function ConfirmPromptContent() {
             <SendTransaction
               contractAddress={CONTRACT_ADDRESS}
               onSuccess={handleSuccess}
-              autoSubmit={false}
+              autoSubmit={true}
               prompt={prompt}
               hideDebug={true}
             />

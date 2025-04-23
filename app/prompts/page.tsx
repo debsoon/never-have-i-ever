@@ -370,7 +370,8 @@ export default function PromptsPage() {
                         "bg-no-repeat bg-center bg-contain",
                         txcPearl.className,
                         isActive ? "text-3xl pb-2" : "text-2xl pb-1.5",
-                        "drop-shadow-[2px_0_2px_rgba(0,0,0,0.25)]"
+                        "drop-shadow-[2px_0_2px_rgba(0,0,0,0.25)]",
+                        "text-[#262626]"
                       )}
                       style={{
                         width: dimensions.width,
