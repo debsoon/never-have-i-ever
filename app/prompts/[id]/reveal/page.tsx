@@ -17,7 +17,7 @@ import { StateDebugger } from '@/app/components/StateDebugger'
 import confetti from 'canvas-confetti'
 import { LoadingState } from '@/app/components/LoadingState'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
-import PayToRevealTransaction from '@/app/components/PayToRevealTransaction'
+import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 
 interface RedisPrompt {
   id: string
@@ -283,14 +283,16 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   if (hasPaid) {
     return (
       <>
-        <StateDebugger
-          hasPaid={hasPaid}
-          setHasPaid={setHasPaid}
-          totalPaid={totalPaid}
-          setTotalPaid={setTotalPaid}
-          isExpired={isExpired}
-          setIsExpired={setIsExpired}
-        />
+        {process.env.NODE_ENV !== 'production' && (
+          <StateDebugger
+            hasPaid={hasPaid}
+            setHasPaid={setHasPaid}
+            totalPaid={totalPaid}
+            setTotalPaid={setTotalPaid}
+            isExpired={isExpired}
+            setIsExpired={setIsExpired}
+          />
+        )}
         <div className="min-h-screen bg-[#B02A15] relative">
           <Image
             src="/images/background.png"
@@ -487,14 +489,16 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     if (totalPaid === 0) {
       return (
         <>
-          <StateDebugger
-            hasPaid={hasPaid}
-            setHasPaid={setHasPaid}
-            totalPaid={totalPaid}
-            setTotalPaid={setTotalPaid}
-            isExpired={isExpired}
-            setIsExpired={setIsExpired}
-          />
+          {process.env.NODE_ENV !== 'production' && (
+            <StateDebugger
+              hasPaid={hasPaid}
+              setHasPaid={setHasPaid}
+              totalPaid={totalPaid}
+              setTotalPaid={setTotalPaid}
+              isExpired={isExpired}
+              setIsExpired={setIsExpired}
+            />
+          )}
           <div className="min-h-screen bg-[#B02A15] relative">
             <Image
               src="/images/background.png"
@@ -570,14 +574,16 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     // State 4: Not paid but others have, and expired
     return (
       <>
-        <StateDebugger
-          hasPaid={hasPaid}
-          setHasPaid={setHasPaid}
-          totalPaid={totalPaid}
-          setTotalPaid={setTotalPaid}
-          isExpired={isExpired}
-          setIsExpired={setIsExpired}
-        />
+        {process.env.NODE_ENV !== 'production' && (
+          <StateDebugger
+            hasPaid={hasPaid}
+            setHasPaid={setHasPaid}
+            totalPaid={totalPaid}
+            setTotalPaid={setTotalPaid}
+            isExpired={isExpired}
+            setIsExpired={setIsExpired}
+          />
+        )}
         <div className="min-h-screen bg-[#B02A15] relative">
           <Image
             src="/images/background.png"
@@ -711,14 +717,16 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   // Default state: Not paid, not expired
   return (
     <>
-      <StateDebugger
-        hasPaid={hasPaid}
-        setHasPaid={setHasPaid}
-        totalPaid={totalPaid}
-        setTotalPaid={setTotalPaid}
-        isExpired={isExpired}
-        setIsExpired={setIsExpired}
-      />
+      {process.env.NODE_ENV !== 'production' && (
+        <StateDebugger
+          hasPaid={hasPaid}
+          setHasPaid={setHasPaid}
+          totalPaid={totalPaid}
+          setTotalPaid={setTotalPaid}
+          isExpired={isExpired}
+          setIsExpired={setIsExpired}
+        />
+      )}
       <div className="min-h-screen bg-[#B02A15] relative">
         <Image
           src="/images/background.png"
@@ -752,14 +760,6 @@ export default function RevealPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs px-4 py-2 mt-4 rounded">
-          Debug State:<br/>
-          hasPaid: {String(hasPaid)}<br/>
-          isExpired: {String(isExpired)}<br/>
-          totalPaid: {totalPaid}
-        </div>
-      )}
     </>
   )
 } 
