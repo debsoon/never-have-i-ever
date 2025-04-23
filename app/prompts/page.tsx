@@ -612,12 +612,12 @@ export default function PromptsPage() {
                                 e.currentTarget.src = '/images/default.png'
                               }}
                             />
-                            <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
+                            <span className={`text-[#B02A15] text-lg ${neuzeitGrotesk.className}`}>
                               posted by{' '}
                               <FarcasterUserMention
                                 username={userData[prompt.authorFid]?.username || String(prompt.authorFid)}
                                 fid={prompt.authorFid}
-                                className="text-2xl"
+                                className="text-lg"
                               />
                             </span>
                           </div>
