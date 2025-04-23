@@ -6,7 +6,8 @@ const KEYS = {
   PROMPT_LIST: 'prompts:list',
   CONFESSION: (promptId: string, userFid: number) => `confession:${promptId}:${userFid}`,
   CONFESSIONS_BY_PROMPT: (promptId: string) => `confessions:prompt:${promptId}`,
-  PAYMENT: (promptId: string, userFid: number) => `payment:${promptId}:${userFid}`,
+  PAYMENTS: (promptId: string) => `prompt:${promptId}:payments`,
+  PAYMENT_DETAILS: (promptId: string, walletAddress: string) => `prompt:${promptId}:payment:${walletAddress}`,
   IMAGE: (promptId: string, userFid: number) => `image:${promptId}:${userFid}`,
 } as const
 
@@ -37,7 +38,7 @@ export interface StoredConfession {
 export interface PaymentStatus {
   promptId: string
   userFid: number
-  hasPaid: boolean
+  userAddress: string
   txHash: string
   timestamp: number
 }
@@ -135,12 +136,27 @@ class LocalStorageHelper implements StorageInterface {
   }
 
   async recordPayment(payment: PaymentStatus): Promise<void> {
-    this.setItem(KEYS.PAYMENT(payment.promptId, payment.userFid), payment)
+    const normalizedAddress = payment.userAddress.toLowerCase()
+    const paymentsKey = KEYS.PAYMENTS(payment.promptId)
+    const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, normalizedAddress)
+    
+    // Add to payments set
+    const payments = this.getItem<string[]>(paymentsKey) || []
+    payments.push(normalizedAddress)
+    this.setItem(paymentsKey, payments)
+    
+    // Store payment details
+    this.setItem(paymentDetailsKey, {
+      userFid: payment.userFid,
+      txHash: payment.txHash,
+      timestamp: payment.timestamp
+    })
   }
 
   async hasUserPaid(promptId: string, userFid: number): Promise<boolean> {
-    const payment = this.getItem<PaymentStatus>(KEYS.PAYMENT(promptId, userFid))
-    return payment?.hasPaid ?? false
+    const paymentsKey = KEYS.PAYMENTS(promptId)
+    const payments = this.getItem<string[]>(paymentsKey) || []
+    return payments.length > 0
   }
 
   async setImageUrl(promptId: string, userFid: number, imageUrl: string): Promise<void> {
@@ -285,12 +301,47 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async recordPayment(payment: PaymentStatus): Promise<void> {
-    await this.redis.set(KEYS.PAYMENT(payment.promptId, payment.userFid), payment)
+    if (!this.isConnected) {
+      console.error('Redis: Attempting to record payment without verified connection')
+      await this.verifyConnection()
+    }
+
+    try {
+      const normalizedAddress = payment.userAddress.toLowerCase()
+      const paymentsKey = KEYS.PAYMENTS(payment.promptId)
+      const paymentDetailsKey = KEYS.PAYMENT_DETAILS(payment.promptId, normalizedAddress)
+
+      // Add to payments set
+      await this.redis.sadd(paymentsKey, normalizedAddress)
+      
+      // Store payment details
+      await this.redis.hset(paymentDetailsKey, {
+        userFid: payment.userFid,
+        txHash: payment.txHash,
+        timestamp: payment.timestamp
+      })
+
+      console.log('Redis: Payment recorded successfully for prompt:', payment.promptId)
+    } catch (error) {
+      console.error('Redis: Error recording payment:', error)
+      throw new Error(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async hasUserPaid(promptId: string, userFid: number): Promise<boolean> {
-    const payment = await this.redis.get<PaymentStatus>(KEYS.PAYMENT(promptId, userFid))
-    return payment?.hasPaid ?? false
+    if (!this.isConnected) {
+      console.error('Redis: Attempting to check payment without verified connection')
+      await this.verifyConnection()
+    }
+
+    try {
+      const paymentsKey = KEYS.PAYMENTS(promptId)
+      const payments = await this.redis.smembers(paymentsKey)
+      return payments.length > 0
+    } catch (error) {
+      console.error('Redis: Error checking payment status:', error)
+      return false
+    }
   }
 
   async setImageUrl(promptId: string, userFid: number, imageUrl: string): Promise<void> {

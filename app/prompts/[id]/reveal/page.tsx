@@ -49,8 +49,8 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
       authorFid: data.author?.username ? parseInt(data.author.username.replace('user', '')) : 0,
       createdAt: data.createdAt,
       expiresAt: data.expiresAt,
-      totalConfessions: data.totalConfessions,
-      confessions: data.confessions.map((confession: any) => ({
+      totalConfessions: data.totalConfessions || 0,
+      confessions: Array.isArray(data.confessions) ? data.confessions.map((confession: any) => ({
         userFid: confession.userFid,
         type: confession.type,
         imageUrl: confession.imageUrl,
@@ -59,7 +59,7 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
         username: confession.username || String(confession.userFid),
         profileImage: confession.profileImage || '/images/default.png',
         userAddress: confession.userAddress || '0x0000000000000000000000000000000000000000'
-      }))
+      })) : []
     }
   } catch (error) {
     console.error('Error loading prompt:', error)
