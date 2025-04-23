@@ -170,7 +170,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
         className="object-cover"
       />
       <div className="min-h-screen border-viewport border-[#B02A15] relative">
-        <div className="min-h-screen bg-transparent flex flex-col items-center px-8 py-12">
+        <div className="min-h-screen flex flex-col items-center px-8 py-12">
           <div className="w-full flex justify-end mb-4">
             <button 
               onClick={() => router.back()}
@@ -195,7 +195,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center text-center max-w-[500px]">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-2">
               <Image
                 src={userData[prompt?.authorFid || 0]?.pfp_url || '/images/default.png'}
                 alt=""
@@ -213,7 +213,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
               <div className="whitespace-nowrap">I EVER...</div>
             </div>
 
-            <div className={cn("text-[#B02A15] text-4xl mb-6", neuzeitGrotesk.className)}>
+            <div className={cn("text-[#B02A15] text-4xl mb-4", neuzeitGrotesk.className)}>
               {prompt.content}
             </div>
 
@@ -252,8 +252,8 @@ export default function PromptPage({ params }: { params: { id: string } }) {
           </div>
 
           <div className="text-center">
-            <div className={cn("text-[#B02A15] text-8xl mb-1", txcPearl.className)}>{prompt.totalConfessions}</div>
-            <div className={cn("text-[#B02A15] font-bold text-xl mb-2", neuzeitGrotesk.className)}>
+            <div className={cn("text-[#B02A15] text-7xl mb-1", txcPearl.className)}>{prompt.totalConfessions}</div>
+            <div className={cn("text-[#B02A15] font-bold text-xl mb-1", neuzeitGrotesk.className)}>
               CONFESSIONS AND COUNTING
             </div>
             <PayToRevealTransaction 
@@ -261,7 +261,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
               onSuccess={() => {
                 router.push(`/prompts/${prompt.id}/reveal`)
               }}
-              className="mt-2"
+              className="mt-1"
               variant="link"
             />
           </div>
