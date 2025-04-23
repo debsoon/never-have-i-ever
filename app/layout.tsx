@@ -12,10 +12,8 @@ import type { Metadata, Viewport } from 'next'
 
 // Define the frame metadata
 const frameMetadata = {
-  version: "1",
-  iconUrl: "https://debbiedoes.fun/images/smallsolocup.png",
-  splashImageUrl: "https://debbiedoes.fun/images/framecover.png",
-  splashBackgroundColor: "#EBCB9A",
+  version: "next",
+  imageUrl: "https://debbiedoes.fun/images/framecover.png",
   button: {
     title: "🤫 Start Confessing",
     action: {
