@@ -154,22 +154,72 @@ class LocalStorageHelper implements StorageInterface {
 
 // Redis storage adapter
 class RedisStorageAdapter implements StorageInterface {
+  private isConnected: boolean = false
+
   constructor(private redis: Redis) {
     console.log('Redis: Initializing RedisStorageAdapter with URL:', process.env.UPSTASH_REDIS_REST_URL)
+    this.verifyConnection()
+  }
+
+  private async verifyConnection() {
+    try {
+      await this.redis.ping()
+      console.log('Redis: Connection verified successfully')
+      this.isConnected = true
+    } catch (error) {
+      console.error('Redis: Connection verification failed:', error)
+      this.isConnected = false
+      throw new Error(`Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
-    const key = KEYS.PROMPT(prompt.id)
-    const storedPrompt: StoredPrompt = {
-      ...prompt,
-      totalConfessions: 0
+    if (!this.isConnected) {
+      console.error('Redis: Attempting to create prompt without verified connection')
+      await this.verifyConnection()
     }
-    await this.redis.set(key, storedPrompt)
-    await this.redis.zadd(KEYS.PROMPT_LIST, { 
-      score: prompt.createdAt, 
-      member: prompt.id 
-    })
-    return storedPrompt
+
+    try {
+      console.log('Redis: Creating prompt with data:', prompt)
+      
+      const key = KEYS.PROMPT(prompt.id)
+      const storedPrompt: StoredPrompt = {
+        ...prompt,
+        totalConfessions: 0
+      }
+
+      // Validate data before storing
+      if (!storedPrompt.id || !storedPrompt.content || !storedPrompt.authorFid) {
+        throw new Error(`Invalid prompt data: ${JSON.stringify(storedPrompt)}`)
+      }
+
+      // Store the prompt
+      const setResult = await this.redis.set(key, storedPrompt)
+      console.log('Redis: Prompt set result:', setResult)
+
+      if (!setResult) {
+        throw new Error('Failed to store prompt in Redis')
+      }
+
+      // Add to sorted set
+      const zaddResult = await this.redis.zadd(KEYS.PROMPT_LIST, { 
+        score: prompt.createdAt, 
+        member: prompt.id 
+      })
+      console.log('Redis: Added to prompt list, result:', zaddResult)
+
+      // Verify the write
+      const verifiedPrompt = await this.redis.get<StoredPrompt>(key)
+      if (!verifiedPrompt) {
+        throw new Error('Failed to verify prompt storage')
+      }
+
+      console.log('Redis: Successfully created and verified prompt:', verifiedPrompt)
+      return verifiedPrompt
+    } catch (error) {
+      console.error('Redis: Error in createPrompt:', error)
+      throw new Error(`Redis createPrompt failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   async getPrompt(promptId: string): Promise<StoredPrompt | null> {

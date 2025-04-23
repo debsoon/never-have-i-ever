@@ -41,6 +41,7 @@ function ConfirmPromptContent() {
   const [processingComplete, setProcessingComplete] = useState(false)
   const [promptId, setPromptId] = useState<string | null>(null)
   const [processedTxHashes, setProcessedTxHashes] = useState<Set<string>>(new Set())
+  const [retryCount, setRetryCount] = useState(0)
 
   // Separate the navigation into its own effect
   useEffect(() => {
@@ -71,36 +72,24 @@ function ConfirmPromptContent() {
   }
 
   async function handleSuccess(txHash: `0x${string}`) {
-    // Even if we've processed this transaction before, we should check if we have a valid promptId
-    if (processedTxHashes.has(txHash)) {
-      setDebugMessage(`🔄 Found cached transaction ${txHash}, verifying prompt data...`)
-      // If we have a promptId but Redis failed, we should retry Redis
-      if (promptId) {
-        try {
-          // Check if prompt exists in Redis
-          const existingPrompt = await redisHelper.getPrompt(promptId)
-          if (existingPrompt) {
-            setDebugMessage('✅ Prompt already exists in Redis! Redirecting...')
-            setProcessingComplete(true)
-            return
-          }
-          setDebugMessage('⚠️ Prompt not found in Redis, retrying storage...')
-        } catch (err) {
-          setDebugMessage('⚠️ Failed to check Redis, will retry storage...')
-        }
-      }
+    // Prevent infinite loops
+    if (retryCount > 2) {
+      setDebugMessage(`❌ Too many retries (${retryCount}). Please refresh and try again.`)
+      setProcessingComplete(true) // Force completion to stop retries
+      return
     }
 
-    // Clear any stale state
-    setIsProcessing(false)
-    window.localStorage.removeItem('lastProcessingTime')
+    // Check if we've already processed this transaction
+    if (processedTxHashes.has(txHash)) {
+      setDebugMessage(`🔄 Transaction ${txHash} already processed.`)
+      if (promptId) {
+        setProcessingComplete(true)
+      }
+      return
+    }
 
     try {
       setIsProcessing(true)
-      setProcessingComplete(false)
-      if (!promptId) {
-        setPromptId(null)
-      }
       setDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
       
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
@@ -110,8 +99,6 @@ function ConfirmPromptContent() {
         return
       }
 
-      setDebugMessage(`📦 Logs found: ${receipt.logs.length}\n📄 Receipt status: ${receipt.status}`)
-      
       if (receipt.status === 'reverted') {
         throw new Error('Transaction reverted')
       }
@@ -123,121 +110,108 @@ function ConfirmPromptContent() {
       )
 
       if (!log || !log.topics[1]) {
-        setDebugMessage('❌ PromptCreated event or promptId not found in logs.')
-        throw new Error('PromptCreated event or promptId not found')
+        throw new Error('PromptCreated event or promptId not found in logs')
       }
 
-      // Extract and validate promptId using full 32 bytes
+      // Extract promptId
       const rawHexValue = log.topics[1]
-      if (!rawHexValue.startsWith('0x')) {
-        setDebugMessage('❌ Invalid topic format - missing 0x prefix')
-        throw new Error('Invalid topic format')
+      const bigIntValue = BigInt(rawHexValue)
+      const extractedPromptId = bigIntValue.toString()
+      
+      // Add validation and debug checks for promptId
+      if (!extractedPromptId || extractedPromptId === '0') {
+        throw new Error('Invalid promptId: value is empty or zero')
+      }
+
+      // Debug check for promptId type and format
+      setDebugMessage(`🔍 PromptId validation:\n- Type: ${typeof extractedPromptId}\n- Value: ${extractedPromptId}\n- Length: ${extractedPromptId.length}\n- Is valid number: ${!isNaN(Number(extractedPromptId))}`)
+
+      // Additional validation
+      if (isNaN(Number(extractedPromptId))) {
+        throw new Error('Invalid promptId: not a valid number')
+      }
+
+      setPromptId(extractedPromptId)
+      setDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
+      
+      // Mark transaction as processed
+      setProcessedTxHashes(prev => new Set(prev).add(txHash))
+
+      // Get FID
+      const userRes = await fetch(`/api/users/wallet/${address}`)
+      if (!userRes.ok) {
+        throw new Error(`Failed to fetch FID: ${userRes.status}`)
+      }
+
+      const userData = await userRes.json()
+      if (!userData.fid) {
+        throw new Error('FID not found in response')
       }
 
       try {
-        // Convert the full 32-byte hex value to BigInt
-        const bigIntValue = BigInt(rawHexValue)
-        const extractedPromptId = bigIntValue.toString()
-        
-        if (extractedPromptId === '0') {
-          setDebugMessage('❌ Invalid promptId: value is 0')
-          throw new Error('Invalid promptId: value is 0')
+        // Prepare and validate Redis data
+        const redisData = {
+          id: extractedPromptId,
+          content: prompt as string,
+          authorFid: userData.fid,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 86400 * 1000,
         }
 
-        setPromptId(extractedPromptId)
-        setDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
-        
-        // Add this transaction to processed set
-        setProcessedTxHashes(prev => new Set(prev).add(txHash))
+        // Validate all required fields
+        const requiredFields = ['id', 'content', 'authorFid', 'createdAt', 'expiresAt']
+        const missingFields = requiredFields.filter(field => !redisData[field])
+        if (missingFields.length > 0) {
+          throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
+        }
 
+        setDebugMessage(`🚀 Attempting Redis storage with payload:\n${JSON.stringify(redisData, null, 2)}`)
+        
+        // Attempt Redis write
+        const createResult = await redisHelper.createPrompt(redisData)
+        setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(createResult)}`)
+
+        // Verify the write immediately
         try {
-          // FID Fetch with validation
-          setDebugMessage(`🔍 Fetching FID for wallet: ${address}`)
-          const userRes = await fetch(`/api/users/wallet/${address}`)
-          
-          if (!userRes.ok) {
-            throw new Error(`Failed to fetch FID: ${userRes.status}`)
+          const verifyResult = await redisHelper.getPrompt(redisData.id)
+          if (!verifyResult) {
+            throw new Error('Verification failed - prompt not found after write')
           }
-
-          const userData = await userRes.json()
-          if (!userData.fid) {
-            throw new Error('FID not found in response')
-          }
-
-          const { fid } = userData
-
-          // Validate promptId before Redis storage
-          if (!extractedPromptId || typeof extractedPromptId !== 'string') {
-            throw new Error(`Invalid promptId type: ${typeof extractedPromptId}, value: ${extractedPromptId}`)
-          }
-
-          // Redis storage
-          const redisData = {
-            id: extractedPromptId,
-            content: prompt as string,
-            authorFid: fid,
-            createdAt: Date.now(),
-            expiresAt: Date.now() + 86400 * 1000,
-          }
-
-          // Log the full payload before Redis write
-          setDebugMessage(`📦 Writing to Redis:\n${JSON.stringify(redisData, null, 2)}`)
-
-          try {
-            // Attempt Redis write with fallback ID if needed
-            const fallbackId = Date.now().toString()
-            const dataToWrite = {
-              ...redisData,
-              id: extractedPromptId || fallbackId
-            }
-
-            await redisHelper.createPrompt(dataToWrite)
-            setDebugMessage(`✅ Redis write successful!\nPrompt ID: ${dataToWrite.id}\nFallback used: ${!extractedPromptId}`)
-
-            // Verify the write by reading it back
-            try {
-              const savedPrompt = await redisHelper.getPrompt(dataToWrite.id)
-              if (!savedPrompt) {
-                throw new Error('Prompt not found after write')
-              }
-              setDebugMessage(`✅ Redis write verified! Data retrieved successfully.`)
-            } catch (verifyErr) {
-              setDebugMessage(`⚠️ Redis write verification failed: ${verifyErr instanceof Error ? verifyErr.message : 'Unknown error'}`)
-            }
-          } catch (redisErr) {
-            const errorDetails = redisErr instanceof Error 
-              ? `${redisErr.message}\n${redisErr.stack}`
-              : JSON.stringify(redisErr)
-            setDebugMessage(`❌ Redis write failed:\nError: ${errorDetails}\nPayload attempted: ${JSON.stringify(redisData, null, 2)}`)
-            throw redisErr
-          }
-
-          await sendNotification({
-            title: 'Prompt Submitted!',
-            body: `Your "Never Have I Ever" prompt has been posted.`,
-          })
-
-          setProcessingComplete(true)
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          const errorStack = err instanceof Error ? err.stack : ''
-          setDebugMessage(`❌ Error saving prompt data:\nMessage: ${errorMessage}\nStack: ${errorStack}\nPrompt ID: ${extractedPromptId}`)
-          // Don't throw here - we still want to redirect to the prompt page even if Redis fails
-          setProcessingComplete(true)
+          setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyResult, null, 2)}`)
+        } catch (verifyError) {
+          const verifyErrorDetails = verifyError instanceof Error
+            ? `${verifyError.message}\n${verifyError.stack}`
+            : JSON.stringify(verifyError)
+          throw new Error(`Write verification failed:\n${verifyErrorDetails}`)
         }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        setDebugMessage(`🔥 Error processing ${txHash}: ${errorMessage}`)
-        console.error('Error in handleSuccess:', err)
+
         await sendNotification({
-          title: 'Error',
-          body: 'Failed to process prompt. Please try again.',
+          title: 'Prompt Submitted!',
+          body: `Your "Never Have I Ever" prompt has been posted.`,
         })
+
+        setProcessingComplete(true)
+      } catch (redisError) {
+        const errorDetails = redisError instanceof Error
+          ? `${redisError.message}\n${redisError.stack}`
+          : JSON.stringify(redisError)
+        setDebugMessage(`❌ Redis Operation Failed:\nError Details: ${errorDetails}\nPrompt ID: ${extractedPromptId}`)
+        console.error('Redis Error:', redisError)
+        throw redisError // Re-throw to be caught by outer catch
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setDebugMessage(`🔥 Error processing ${txHash}: ${errorMessage}`)
+      setDebugMessage(`❌ Error: ${errorMessage}`)
       console.error('Error in handleSuccess:', err)
+      
+      // Increment retry counter
+      setRetryCount(prev => prev + 1)
+      
+      // Only set processing complete if we have a promptId
+      if (promptId) {
+        setProcessingComplete(true)
+      }
+      
       await sendNotification({
         title: 'Error',
         body: 'Failed to process prompt. Please try again.',
