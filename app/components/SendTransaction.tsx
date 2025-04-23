@@ -27,9 +27,10 @@ interface SendTransactionProps {
   onSuccess?: (hash: `0x${string}`) => void
   autoSubmit?: boolean
   prompt?: string
+  hideDebug?: boolean
 }
 
-export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true, prompt }: SendTransactionProps) {
+export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true, prompt, hideDebug = false }: SendTransactionProps) {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   
@@ -106,19 +107,19 @@ export function SendTransaction({ contractAddress, onSuccess, autoSubmit = true,
          'PAY $1 TO SUBMIT'}
       </button>
 
-      {isConnected && (
+      {isConnected && !hideDebug && (
         <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
           Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
         </p>
       )}
 
-      {hash && (
+      {hash && !hideDebug && (
         <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
           Transaction Hash: {hash}
         </p>
       )}
 
-      {error && (
+      {error && !hideDebug && (
         <p className={`text-[#B02A15] text-sm text-center ${neuzeitGrotesk.className}`}>
           Error: {(error as BaseError).shortMessage || error.message}
         </p>

@@ -231,9 +231,9 @@ function ConfirmPromptContent() {
   }
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
+    <main className={`flex min-h-screen flex-col items-center justify-start pt-8 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
       <div className="relative w-full max-w-[600px] flex flex-col items-center px-8">
-        <div className="w-full flex justify-end mb-4">
+        <div className="w-full flex justify-end mb-2">
           <button 
             onClick={() => router.back()}
             className="hover:opacity-80 transition-opacity"
@@ -247,11 +247,11 @@ function ConfirmPromptContent() {
           </button>
         </div>
         <div className="w-full p-2 rounded-lg">
-          <h2 className={`text-[#B02A15] text-xl mb-2 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
-          <div className="w-full h-[1px] bg-[#B02A15] mb-4" />
-          <div className="text-[#B02A15] text-6xl text-center mb-4">NEVER HAVE<br />I EVER...</div>
-          <div className={`text-[#B02A15] text-4xl text-center mb-8 ${neuzeitGrotesk.className}`}>{prompt}</div>
-          <div className="bg-[#FFE5E5] p-4 rounded-lg mb-8">
+          <h2 className={`text-[#B02A15] text-xl mb-1 text-center ${neuzeitGrotesk.className}`}>YOUR PROMPT</h2>
+          <div className="w-full h-[1px] bg-[#B02A15] mb-2" />
+          <div className="text-[#B02A15] text-6xl text-center mb-2">NEVER HAVE<br />I EVER...</div>
+          <div className={`text-[#B02A15] text-4xl text-center mb-4 ${neuzeitGrotesk.className}`}>{prompt}</div>
+          <div className="bg-[#FFE5E5] p-3 rounded-lg mb-4">
             <div className="flex items-start gap-2 text-[#B02A15]">
               <Image src="/images/icons/triangle_warning.png" alt="Warning" width={20} height={20} />
               <p className={`${neuzeitGrotesk.className} text-[15px]`}>
@@ -261,21 +261,25 @@ function ConfirmPromptContent() {
           </div>
 
           {!isConnected ? (
-            <button
-              onClick={() => connect({ connector: connectors[0] })}
-              className="w-full bg-[#B02A15] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#8A1F0F] transition-colors"
-            >
-              Connect Wallet
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={() => connect({ connector: connectors[0] })}
+                className="bg-[#B02A15] text-[#FCD9A8] px-8 py-3 rounded-full text-3xl hover:bg-[#8f2211] transition-colors border-2 border-[#B02A15] uppercase tracking-wider"
+              >
+                Connect Wallet
+              </button>
+            </div>
           ) : !isCorrectChain ? (
             <div className="text-center text-[#B02A15]">
               Please switch to Base network
             </div>
           ) : (
             <SendTransaction
-              prompt={prompt as string}
+              contractAddress={CONTRACT_ADDRESS}
               onSuccess={handleSuccess}
-              contractAddress={CONTRACT_ADDRESS as `0x${string}`}
+              autoSubmit={false}
+              prompt={prompt}
+              hideDebug={true}
             />
           )}
 
