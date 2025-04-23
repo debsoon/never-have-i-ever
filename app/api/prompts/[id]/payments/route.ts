@@ -1,52 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
 
-// GET /api/prompts/[id]/payments - Check if a wallet has paid
+// GET /api/prompts/[id]/payments?fid=123
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const searchParams = request.nextUrl.searchParams
-  const walletAddress = searchParams.get('wallet')?.toLowerCase()
+  const fid = searchParams.get('fid')
 
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Wallet address required' }, { status: 400 })
+  if (!fid) {
+    return NextResponse.json({ error: 'User FID required' }, { status: 400 })
   }
 
   try {
-    const { hasPaid, totalPaid } = await redisHelper.checkPayment(params.id, walletAddress)
-    return NextResponse.json({ hasPaid, totalPaid })
+    const hasPaid = await redisHelper.hasUserPaid(params.id, parseInt(fid))
+    return NextResponse.json({ hasPaid })
   } catch (error) {
     console.error('Error checking payment status:', error)
     return NextResponse.json({ error: 'Failed to check payment status' }, { status: 500 })
   }
 }
 
-// POST /api/prompts/[id]/payments - Record a new payment
+// POST /api/prompts/[id]/payments
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { walletAddress, userFid, txHash } = await request.json()
+    const { userFid, txHash } = await request.json()
 
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address required' }, { status: 400 })
+    if (!userFid || !txHash) {
+      return NextResponse.json({ error: 'Missing userFid or txHash' }, { status: 400 })
     }
 
-    // Normalize wallet address to lowercase
-    const normalizedAddress = walletAddress.toLowerCase()
-
-    // Record the payment
-    const { hasPaid, totalPaid } = await redisHelper.recordPayment(params.id, normalizedAddress, userFid, txHash)
+    await redisHelper.recordPayment({
+      promptId: params.id,
+      userFid: parseInt(userFid),
+      txHash,
+      timestamp: Date.now()
+    })
 
     return NextResponse.json({
       message: 'Payment recorded successfully',
-      hasPaid,
-      totalPaid
+      hasPaid: true
     })
   } catch (error) {
     console.error('Error recording payment:', error)
     return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
   }
-} 
+}

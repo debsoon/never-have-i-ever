@@ -22,7 +22,7 @@ export interface StoredConfession {
 export interface PaymentStatus {
   promptId: string
   userFid: number
-  txHash?: string
+  userAddress?: string
+  txHash: string
   timestamp: number
-  userAddress: string
 } 
