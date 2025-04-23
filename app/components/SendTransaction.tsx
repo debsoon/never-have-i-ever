@@ -3,7 +3,7 @@
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { type BaseError } from 'viem'
-import { neuzeitGrotesk } from '@/utils/fonts'
+import { neuzeitGrotesk, txcPearl } from '@/utils/fonts'
 import { useEffect, useState } from 'react'
 import { publicClient } from '@/app/lib/viemClient'
 import { cn } from '@/lib/utils'
@@ -133,13 +133,13 @@ export function SendTransaction({
           "inline-flex items-center justify-center whitespace-nowrap bg-[#B02A15] text-[#FCD9A8] px-6 py-2 rounded-full",
           "text-3xl hover:bg-[#8f2211] transition-colors",
           "border-2 border-[#B02A15]",
-          neuzeitGrotesk.className
+          txcPearl.className
         )}
       >
         {isPending ? 'Confirming...' :
          isConfirming ? 'Processing...' :
          !priceInWei ? 'Loading...' :
-         'CONFIRM PROMPT'}
+         'Prompt submitted'}
       </button>
 
       {!hideDebug && error && (

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { CONTRACT_ADDRESS } from '@/app/constants'
 import { cn } from '@/lib/utils'
 import { publicClient } from '@/app/lib/viemClient'
+import { useMiniKit } from "@coinbase/onchainkit/minikit"
 
 const CONTRACT_ABI = [
   {
@@ -41,9 +42,10 @@ export function PayToRevealTransaction({
   className,
   variant = 'button'
 }: PayToRevealTransactionProps) {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { connect, connectors } = useConnect()
   const [priceInWei, setPriceInWei] = useState<bigint | null>(null)
+  const { context: miniKitContext } = useMiniKit()
   
   const {
     data: hash,
@@ -115,12 +117,34 @@ export function PayToRevealTransaction({
     await prepareAndSendTransaction()
   }
 
-  // Call onSuccess when transaction is confirmed
+  // Call onSuccess and record payment when transaction is confirmed
   useEffect(() => {
-    if (isConfirmed && hash && onSuccess) {
-      onSuccess(hash)
+    async function handleConfirmed() {
+      if (!isConfirmed || !hash || !address) return
+
+      try {
+        // Record payment in Redis
+        await fetch(`/api/prompts/${promptId}/payments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            walletAddress: address,
+            userFid: miniKitContext?.user?.fid,
+            txHash: hash
+          })
+        })
+
+        // Call onSuccess callback
+        if (onSuccess) {
+          onSuccess(hash)
+        }
+      } catch (err) {
+        console.error('Error recording payment:', err)
+      }
     }
-  }, [isConfirmed, hash, onSuccess])
+
+    handleConfirmed()
+  }, [isConfirmed, hash, onSuccess, promptId, address, miniKitContext?.user?.fid])
 
   return (
     <form onSubmit={submit} className={cn("flex flex-col gap-4 w-full", className)}>

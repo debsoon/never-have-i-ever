@@ -15,12 +15,14 @@ export async function GET(
   }
 
   try {
-    // Get the payments set for this prompt
-    const payments = await kv.smembers(`prompt:${params.id}:payments`) as string[]
+    // More efficient check using SISMEMBER
+    const hasPaid = await kv.sismember(`prompt:${params.id}:payments`, walletAddress)
+    // Get total paid count
+    const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
     
     return NextResponse.json({
-      hasPaid: payments.includes(walletAddress),
-      totalPaid: payments.length
+      hasPaid: Boolean(hasPaid),
+      totalPaid
     })
   } catch (error) {
     console.error('Error checking payment status:', error)
@@ -33,17 +35,46 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { walletAddress } = await request.json()
-  
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Wallet address required' }, { status: 400 })
-  }
-
   try {
-    // Add wallet to the payments set
-    await kv.sadd(`prompt:${params.id}:payments`, walletAddress.toLowerCase())
-    
-    return NextResponse.json({ success: true })
+    const { walletAddress, userFid, txHash } = await request.json()
+
+    if (!walletAddress) {
+      return NextResponse.json({ error: 'Wallet address required' }, { status: 400 })
+    }
+
+    // Normalize wallet address to lowercase
+    const normalizedAddress = walletAddress.toLowerCase()
+
+    // Check if payment already recorded using SISMEMBER
+    const alreadyPaid = await kv.sismember(`prompt:${params.id}:payments`, normalizedAddress)
+    if (alreadyPaid) {
+      const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+      return NextResponse.json({ 
+        message: 'Payment already recorded',
+        hasPaid: true,
+        totalPaid
+      })
+    }
+
+    // Record the payment details
+    await Promise.all([
+      // Add to payments set
+      kv.sadd(`prompt:${params.id}:payments`, normalizedAddress),
+      // Store payment details
+      kv.hset(`prompt:${params.id}:payment:${normalizedAddress}`, {
+        userFid,
+        txHash,
+        timestamp: Date.now()
+      })
+    ])
+
+    const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+
+    return NextResponse.json({
+      message: 'Payment recorded successfully',
+      hasPaid: true,
+      totalPaid
+    })
   } catch (error) {
     console.error('Error recording payment:', error)
     return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
