@@ -17,7 +17,9 @@ interface ImagePopupProps {
   profileImage: string
   caption: string
   recipientAddress: `0x${string}`
-  imageUrl: string
+  confession: {
+    imageUrl: string
+  }
 }
 
 export default function ImagePopup({ 
@@ -27,7 +29,7 @@ export default function ImagePopup({
   profileImage, 
   caption,
   recipientAddress,
-  imageUrl
+  confession
 }: ImagePopupProps) {
   const { address } = useAccount()
 
@@ -109,7 +111,7 @@ export default function ImagePopup({
             {/* Image container */}
             <div className="relative aspect-square w-full">
               <Image
-                src={imageUrl}
+                src={confession.imageUrl}
                 alt="Confession image"
                 fill
                 className="object-cover [filter:sepia(0.4)_contrast(1.2)_brightness(0.95)_opacity(0.95)] mix-blend-multiply"

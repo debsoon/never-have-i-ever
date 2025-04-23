@@ -103,7 +103,9 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     profileImage: string
     caption: string
     recipientAddress: `0x${string}`
-    imageUrl?: string
+    confession: {
+      imageUrl: string
+    }
   } | null>(null)
 
   const { address } = useAccount()
@@ -358,7 +360,9 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                           profileImage: confession.profileImage || '/images/default.png',
                           caption: confession.caption || '',
                           recipientAddress: (confession.userAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
-                          imageUrl: confession.imageUrl
+                          confession: {
+                            imageUrl: confession.imageUrl || ''
+                          }
                         })}
                       >
                         <Image
@@ -384,7 +388,9 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                             profileImage: confession.profileImage || '/images/default.png',
                             caption: confession.caption || '',
                             recipientAddress: (confession.userAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
-                            imageUrl: confession.imageUrl
+                            confession: {
+                              imageUrl: confession.imageUrl || ''
+                            }
                           })}
                         />
                       )}
@@ -475,7 +481,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
             profileImage={selectedImage?.profileImage || ''}
             caption={selectedImage?.caption || ''}
             recipientAddress={selectedImage?.recipientAddress || '0x0000000000000000000000000000000000000000' as `0x${string}`}
-            imageUrl={selectedImage?.imageUrl || ''}
+            confession={selectedImage?.confession || { imageUrl: '' }}
           />
         </div>
       </>
