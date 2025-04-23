@@ -2,10 +2,45 @@ import './theme.css';
 import '@coinbase/onchainkit/styles.css';
 import './globals.css';
 import { type ReactNode } from 'react';
-import { metadata, viewport } from './metadata';
 import { ClientLayout } from './client-layout';
+import { Inter } from 'next/font/google'
+import { Providers } from './providers'
 
-export { metadata, viewport };
+const inter = Inter({ subsets: ['latin'] })
+
+import type { Metadata, Viewport } from 'next'
+
+// Define the frame metadata
+const frameMetadata = {
+  version: "next",
+  image: "/images/framecover.png",
+  button: {
+    title: "🤫 Start Confessing",
+    action: {
+      type: "launch_frame",
+      url: "https://debbiedoes.fun",
+      name: "Never Have I Ever"
+    }
+  }
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
+export const metadata: Metadata = {
+  title: 'Never Have I Ever',
+  description: 'A social game of confessions and revelations',
+  openGraph: {
+    title: 'Never Have I Ever',
+    description: 'A social game of confessions and revelations',
+    images: ['/images/splash/header.png'],
+  },
+  other: {
+    'fc:frame': JSON.stringify(frameMetadata),
+  },
+}
 
 export default function RootLayout({
   children,
@@ -14,9 +49,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-background">
+      <body>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
-}
+} 
