@@ -444,7 +444,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                     try {
                       const { sdk } = await import('@farcaster/frame-sdk')
                       await sdk.actions.composeCast({ 
-                        text: `Never Have I Ever ${prompt.content}\n\n${haveConfessions.length} HAVE and ${neverConfessions.length} NEVER. Join the confessions!`,
+                        text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀`,
                         embeds: [`https://debbiedoes.fun/prompts/${params.id}`]
                       })
                     } catch (error) {
