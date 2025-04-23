@@ -167,7 +167,7 @@ export function PayToRevealTransaction({
         }
       } catch (err) {
         console.error('Error recording payment:', err)
-        setDebugMessage(`❌ Payment API Error:\n${responseData?.error || 'Unknown'}\n\nSubmitted:\n${JSON.stringify({
+        setDebugMessage(`❌ Payment API Error:\n${responseData?.error || 'Unknown'}\n\nStack:\n${responseData?.stack || 'No stack trace'}\n\nSubmitted:\n${JSON.stringify(responseData?.input || {
           walletAddress: address,
           userFid: miniKitContext?.user?.fid,
           txHash: hash
