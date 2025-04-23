@@ -283,16 +283,14 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   if (hasPaid) {
     return (
       <>
-        {process.env.NODE_ENV !== 'production' && (
-          <StateDebugger
-            hasPaid={hasPaid}
-            setHasPaid={setHasPaid}
-            totalPaid={totalPaid}
-            setTotalPaid={setTotalPaid}
-            isExpired={isExpired}
-            setIsExpired={setIsExpired}
-          />
-        )}
+        <StateDebugger
+          hasPaid={hasPaid}
+          setHasPaid={setHasPaid}
+          totalPaid={totalPaid}
+          setTotalPaid={setTotalPaid}
+          isExpired={isExpired}
+          setIsExpired={setIsExpired}
+        />
         <div className="min-h-screen bg-[#B02A15] relative">
           <Image
             src="/images/background.png"
@@ -465,6 +463,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                 >
                   {isExpired ? 'Find something else to confess to' : 'Confess to something else'}
                 </Link>
+
               </div>
             </div>
           </div>
@@ -489,16 +488,14 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     if (totalPaid === 0) {
       return (
         <>
-          {process.env.NODE_ENV !== 'production' && (
-            <StateDebugger
-              hasPaid={hasPaid}
-              setHasPaid={setHasPaid}
-              totalPaid={totalPaid}
-              setTotalPaid={setTotalPaid}
-              isExpired={isExpired}
-              setIsExpired={setIsExpired}
-            />
-          )}
+          <StateDebugger
+            hasPaid={hasPaid}
+            setHasPaid={setHasPaid}
+            totalPaid={totalPaid}
+            setTotalPaid={setTotalPaid}
+            isExpired={isExpired}
+            setIsExpired={setIsExpired}
+          />
           <div className="min-h-screen bg-[#B02A15] relative">
             <Image
               src="/images/background.png"
@@ -525,7 +522,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   {prompt.content}
                 </div>
 
-                <div className="relative w-[140%] aspect-square mb-4 left-1/2 -translate-x-1/2">
+                <div className="relative w-[150%] aspect-square mb-4 left-1/2 -translate-x-1/2">
                   <Image
                     src="/images/confessions.png"
                     alt="Burning confessions"
@@ -535,7 +532,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   />
                 </div>
 
-                <p className={cn("text-[#B02A15] text-[28px] mb-6 leading-tight", txcPearl.className)}>
+                <p className={cn("text-[#B02A15] text-[24px] mb-6 leading-tight", txcPearl.className)}>
                   NO ONE PAID TO SEE WHO CAME CLEAN. ALL CONFESSIONS HAVE BEEN BURNED AND LOST FOREVER.
                 </p>
 
@@ -574,16 +571,14 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     // State 4: Not paid but others have, and expired
     return (
       <>
-        {process.env.NODE_ENV !== 'production' && (
-          <StateDebugger
-            hasPaid={hasPaid}
-            setHasPaid={setHasPaid}
-            totalPaid={totalPaid}
-            setTotalPaid={setTotalPaid}
-            isExpired={isExpired}
-            setIsExpired={setIsExpired}
-          />
-        )}
+        <StateDebugger
+          hasPaid={hasPaid}
+          setHasPaid={setHasPaid}
+          totalPaid={totalPaid}
+          setTotalPaid={setTotalPaid}
+          isExpired={isExpired}
+          setIsExpired={setIsExpired}
+        />
         <div className="min-h-screen bg-[#B02A15] relative">
           <Image
             src="/images/background.png"
@@ -670,43 +665,38 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              <div className="text-center">
-                <h2 className="text-2xl font-bold mb-4">This prompt has expired</h2>
-                <p className="mb-4">Pay to reveal the confessions</p>
-                <PayToRevealTransaction
-                  promptId={params.id}
-                  onSuccess={() => setHasPaid(true)}
+              <div className="flex flex-col items-center space-y-2 w-full mt-2 mb-10">
+              <PayToRevealTransaction 
+                promptId={params.id}
+                onSuccess={() => {
+                  window.location.href = `/prompts/${params.id}/reveal`
+                }}
+              />
+
+             
+                <Link
+                  href="/create-prompt"
                   className={cn(
-                    "bg-[#B02A15] text-[#FCD9A8] px-6 py-3 rounded-full",
-                    "text-3xl hover:bg-[#8f2211] transition-colors uppercase",
-                    "tracking-wider mb-6 w-fit mx-auto",
+                    "bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full",
+                      "text-3xl whitespace-nowrap hover:bg-[#B02A15] hover:text-[#E8D0B3] transition-colors",
+                        "border-[3px] border-[#B02A15] uppercase tracking-wider",
                     txcPearl.className
                   )}
-                />
+                >
+                  CREATE NEW PROMPT
+                </Link>
+
+                <Link
+                  href="/prompts"
+                  className={cn(
+                    "text-[#B02A15] text-xl underline",
+                    "hover:opacity-80 transition-opacity",
+                    neuzeitGrotesk.className
+                  )}
+                >
+                  Find something else to confess to
+                </Link>
               </div>
-
-              <Link
-                href="/create-prompt"
-                className={cn(
-                  "bg-transparent text-[#B02A15] px-8 py-3 rounded-full",
-                  "text-3xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
-                  "border-[3px] border-[#B02A15] uppercase tracking-wider mb-4",
-                  txcPearl.className
-                )}
-              >
-                CREATE NEW PROMPT
-              </Link>
-
-              <Link
-                href="/prompts"
-                className={cn(
-                  "text-[#B02A15] text-xl flex items-center justify-center mt-6 mb-12",
-                  "hover:opacity-80 transition-opacity underline",
-                  neuzeitGrotesk.className
-                )}
-              >
-                Find something else to confess to
-              </Link>
             </div>
           </div>
         </div>
@@ -717,16 +707,14 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   // Default state: Not paid, not expired
   return (
     <>
-      {process.env.NODE_ENV !== 'production' && (
-        <StateDebugger
-          hasPaid={hasPaid}
-          setHasPaid={setHasPaid}
-          totalPaid={totalPaid}
-          setTotalPaid={setTotalPaid}
-          isExpired={isExpired}
-          setIsExpired={setIsExpired}
-        />
-      )}
+      <StateDebugger
+        hasPaid={hasPaid}
+        setHasPaid={setHasPaid}
+        totalPaid={totalPaid}
+        setTotalPaid={setTotalPaid}
+        isExpired={isExpired}
+        setIsExpired={setIsExpired}
+      />
       <div className="min-h-screen bg-[#B02A15] relative">
         <Image
           src="/images/background.png"
