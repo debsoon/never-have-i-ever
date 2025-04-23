@@ -230,7 +230,7 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
             className="rounded-full object-cover"
           />
         </div>
-        <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
+        <span className={`text-[#B02A15] text-lg ${neuzeitGrotesk.className}`}>
           posted by{' '}
           <FarcasterUserMention
             username={userData[prompt.authorFid]?.username || String(prompt.authorFid)}
@@ -613,9 +613,12 @@ export default function PromptsPage() {
                               }}
                             />
                             <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
-                              posted by {userData[prompt.authorFid] 
-                                ? `@${userData[prompt.authorFid].username}`
-                                : `@${prompt.authorFid}`}
+                              posted by{' '}
+                              <FarcasterUserMention
+                                username={userData[prompt.authorFid]?.username || String(prompt.authorFid)}
+                                fid={prompt.authorFid}
+                                className="text-2xl"
+                              />
                             </span>
                           </div>
 

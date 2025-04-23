@@ -104,7 +104,7 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
                   try {
                     const { sdk } = await import('@farcaster/frame-sdk')
                     await sdk.actions.composeCast({ 
-                      text: `I just confessed to Never Have I Ever ${data.content} Confess your secrets with me.`,
+                      text: `Never have I ever ${data.content}.. or have I?\n\nJoin ${data.totalConfessions} others in confessing 👀`,
                       embeds: [`https://debbiedoes.fun/prompts/${params.id}`]
                     })
                   } catch (error) {

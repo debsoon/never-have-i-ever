@@ -373,10 +373,11 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                           className="rounded-full object-cover"
                         />
                       </div>
-                      <span className={cn("text-[#B02A15] text-xl", neuzeitGrotesk.className)}>
-                        <span className="no-underline">@</span>
-                        <span className="underline">{confession.username || confession.userFid}</span>
-                      </span>
+                      <FarcasterUserMention
+                        username={confession.username || String(confession.userFid)}
+                        fid={confession.userFid}
+                        className="text-[#B02A15] text-xl"
+                      />
                       {confession.imageUrl && (
                         <Image
                           src="/images/icons/image-line.png"
