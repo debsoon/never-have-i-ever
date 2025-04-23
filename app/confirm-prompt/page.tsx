@@ -174,16 +174,30 @@ function ConfirmPromptContent() {
 
         setDebugMessage(`🚀 Attempting Redis storage with hardcoded test ID:\n${JSON.stringify(redisData, null, 2)}`)
         
-        // Attempt Redis write with hardcoded ID
-        const createResult = await redisHelper.createPrompt(redisData)
-        setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(createResult)}`)
+        // Use API route instead of direct Redis access
+        const response = await fetch('/api/redis/create-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(redisData),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(`API Error: ${errorData.error}`)
+        }
+
+        const result = await response.json()
+        setDebugMessage(`📝 Redis createPrompt result: ${JSON.stringify(result)}`)
 
         // Verify the write immediately
         try {
-          const verifyResult = await redisHelper.getPrompt(redisData.id)
-          if (!verifyResult) {
+          const verifyResponse = await fetch(`/api/redis/get-prompt?id=${redisData.id}`)
+          if (!verifyResponse.ok) {
             throw new Error('Verification failed - prompt not found after write')
           }
+          const verifyResult = await verifyResponse.json()
           setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyResult, null, 2)}`)
         } catch (verifyError) {
           const verifyErrorDetails = verifyError instanceof Error

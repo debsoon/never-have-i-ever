@@ -309,8 +309,8 @@ export class RedisHelperClass {
   constructor() {
     console.log('Redis: Initializing RedisHelperClass')
     console.log('Redis: Checking environment variables...')
-    console.log('Redis: UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set')
-    console.log('Redis: UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Not set')
+    console.log('Redis ENV URL:', process.env.UPSTASH_REDIS_REST_URL ? '✅ Set' : '❌ Missing')
+    console.log('Redis ENV TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? '✅ Set' : '❌ Missing')
     
     if (typeof window === 'undefined' && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
       console.log('Redis: Using RedisStorageAdapter')
