@@ -493,13 +493,13 @@ export default function PromptsPage() {
                 ) : (
                   <>
                     {activeTab === 'created' && sortedPrompts.length > 0 && (
-                      <div className="pt-6 px-6">
+                      <div className="pt-6 px-6 flex justify-center">
                         <Link
                           href="/create-prompt"
                           className={cn(
-                            "inline-block bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
-                            "text-2xl hover:bg-[#8f2211] transition-colors",
-                            "uppercase tracking-wider",
+                            "inline-block bg-transparent text-[#B02A15] px-4 py-2 rounded-full",
+                            "text-2xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
+                            "border-2 border-[#B02A15] uppercase tracking-wider",
                             txcPearl.className
                           )}
                         >
@@ -508,13 +508,13 @@ export default function PromptsPage() {
                       </div>
                     )}
                     {activeTab === 'responded' && sortedPrompts.length > 0 && (
-                      <div className="pt-6 px-6">
+                      <div className="pt-6 px-6 flex justify-center">
                         <button
                           onClick={() => setActiveTab('all')}
                           className={cn(
-                            "inline-block bg-[#B02A15] text-[#FCD9A8] px-4 py-2 rounded-full",
-                            "text-2xl hover:bg-[#8f2211] transition-colors",
-                            "uppercase tracking-wider",
+                            "inline-block bg-transparent text-[#B02A15] px-4 py-2 rounded-full",
+                            "text-2xl hover:bg-[#B02A15] hover:text-[#FCD9A8] transition-colors",
+                            "border-2 border-[#B02A15] uppercase tracking-wider",
                             txcPearl.className
                           )}
                         >

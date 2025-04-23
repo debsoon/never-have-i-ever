@@ -6,6 +6,7 @@ import { Transaction } from "@coinbase/onchainkit/transaction"
 import { parseUnits } from "viem"
 import { useAccount } from "wagmi"
 import { useMemo } from 'react'
+import { TipTransaction } from './TipTransaction'
 
 // USDC contract address from environment
 const USDC_CONTRACT = process.env.NEXT_PUBLIC_USDC_CONTRACT as `0x${string}`
@@ -65,12 +66,12 @@ export default function ImagePopup({
         {/* Paper background container with tape */}
         <div className="relative w-full">
           {/* Tape overlay */}
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 w-64 drop-shadow-lg">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-10 w-48 drop-shadow-lg">
             <Image
               src="/images/pieceoftape.png"
               alt="Tape"
-              width={256}
-              height={64}
+              width={192}
+              height={48}
               priority
             />
           </div>
@@ -126,21 +127,11 @@ export default function ImagePopup({
           </div>
         </div>
 
-        {/* Tip button - centered and content-width */}
-        <Transaction 
-          calls={tipCall}
-          onSuccess={onSuccess}
-          onError={onError}
-        >
-          <button
-            className={`mx-auto inline-block bg-[#B02A15] text-[#FCD9A8] px-6 py-3 rounded-full
-                      text-4xl hover:bg-[#8f2211] transition-colors mt-8 whitespace-nowrap
-                      ${txcPearl.className}`}
-            disabled={!address} // Disable if wallet not connected
-          >
-            TIP $1 FOR BRAVERY
-          </button>
-        </Transaction>
+        {/* Replace the Transaction component with TipTransaction */}
+        <TipTransaction 
+          recipientAddress={recipientAddress}
+          onSuccess={onClose}
+        />
       </div>
     </div>
   )
