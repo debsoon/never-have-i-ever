@@ -6,34 +6,33 @@ export async function GET(
   { params }: { params: { fid: string } }
 ) {
   try {
-    const userFid = params.fid
-    
-    // Get prompts the user has responded to
-    const respondedPrompts = await redisHelper.getRecentPrompts()
-    const filteredRespondedPrompts = []
-    for (const promptId of respondedPrompts) {
-      const confession = await redisHelper.getConfession(promptId, parseInt(userFid))
-      if (confession) {
-        filteredRespondedPrompts.push(promptId)
-      }
-    }
-    
-    // Get prompts created by the user
-    const createdPrompts = []
+    const userFid = parseInt(params.fid, 10)
     const allPrompts = await redisHelper.getRecentPrompts()
+
+    const respondedPrompts: string[] = []
+    const createdPrompts: string[] = []
+
     for (const promptId of allPrompts) {
-      const prompt = await redisHelper.getPrompt(promptId)
-      if (prompt && prompt.authorFid === parseInt(userFid)) {
-        createdPrompts.push(promptId)
+      const [confession, prompt] = await Promise.all([
+        redisHelper.getConfession(promptId, userFid),
+        redisHelper.getPrompt(promptId)
+      ])
+
+      if (confession) {
+        respondedPrompts.push(String(promptId))
+      }
+
+      if (prompt && prompt.authorFid === userFid) {
+        createdPrompts.push(String(promptId))
       }
     }
 
     return NextResponse.json({
-      respondedPrompts: filteredRespondedPrompts,
+      respondedPrompts,
       createdPrompts
     })
   } catch (error) {
     console.error('Error fetching user interactions:', error)
     return NextResponse.json({ error: 'Failed to fetch user interactions' }, { status: 500 })
   }
-} 
+}

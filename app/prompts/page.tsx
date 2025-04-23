@@ -111,7 +111,7 @@ async function loadPrompts(userFid?: number): Promise<PromptWithStatus[]> {
         totalConfessions: prompt.totalConfessions || 0,
         status: getPromptStatus(prompt),
         spicy: isSpicyPrompt(prompt.content),
-        hasResponded: userInteractions?.respondedPrompts?.includes(prompt.id) || false,
+        hasResponded: userInteractions?.respondedPrompts?.includes(String(prompt.id)) || false,
         hasPaid: userPayments[prompt.id] || false
       }
       console.log('Transformed prompt:', promptWithStatus)
