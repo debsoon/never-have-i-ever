@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti'
 import { LoadingState } from '@/app/components/LoadingState'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
+import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
 
 interface RedisPrompt {
   id: string
@@ -420,10 +421,11 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                       {neverConfessions.map((confession, index) => (
                         <span key={confession.userFid}>
                           <span className={cn("text-[#5B4527] text-xl", neuzeitGrotesk.className)}>
-                            <span className="no-underline">@</span>
-                            <span className="underline hover:opacity-80 transition-opacity">
-                              {confession.username || confession.userFid}
-                            </span>
+                            <FarcasterUserMention
+                              username={confession.username || String(confession.userFid)}
+                              fid={confession.userFid}
+                              className="text-[#5B4527] text-xl"
+                            />
                           </span>
                           {index < neverConfessions.length - 1 && (
                             <span className="text-[#5B4527] text-sm mx-1 no-underline align-middle">•</span>
@@ -439,10 +441,11 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={async () => {
                     try {
-                      const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
-                        `I just confessed to Never Have I Ever ${prompt.content} Spill your secrets with me.`
-                      )}&embeds[]=${encodeURIComponent(`https://never-have-i-ever.xyz/prompts/${params.id}`)}`
-                      window.open(shareUrl, '_blank')
+                      const { sdk } = await import('@farcaster/frame-sdk')
+                      await sdk.actions.composeCast({ 
+                        text: `Never Have I Ever ${prompt.content}\n\n${haveConfessions.length} HAVE and ${neverConfessions.length} NEVER. Join the confessions!`,
+                        embeds: [`https://debbiedoes.fun/prompts/${params.id}`]
+                      })
                     } catch (error) {
                       console.error('Error sharing to Farcaster:', error)
                     }

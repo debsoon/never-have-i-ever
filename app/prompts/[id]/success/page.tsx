@@ -102,10 +102,11 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
               <button
                 onClick={async () => {
                   try {
-                    const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
-                      `I just confessed to Never Have I Ever ${data.content} Confess your secrets with me.`
-                    )}&embeds[]=${encodeURIComponent(`https://never-have-i-ever.xyz/prompts/${params.id}`)}`
-                    window.open(shareUrl, '_blank')
+                    const { sdk } = await import('@farcaster/frame-sdk')
+                    await sdk.actions.composeCast({ 
+                      text: `I just confessed to Never Have I Ever ${data.content} Confess your secrets with me.`,
+                      embeds: [`https://debbiedoes.fun/prompts/${params.id}`]
+                    })
                   } catch (error) {
                     console.error('Error sharing to Farcaster:', error)
                   }

@@ -74,7 +74,7 @@ export function TipTransaction({
   }, [isConfirmed, onSuccess])
 
   return (
-    <div>
+    <div className="relative z-[60]">
       <button
         onClick={handleTip}
         disabled={isPending || isConfirming || showSuccess}

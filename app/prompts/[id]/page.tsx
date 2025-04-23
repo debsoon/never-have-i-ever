@@ -14,6 +14,7 @@ import { LoadingState } from '@/app/components/LoadingState'
 import { useRouter } from 'next/navigation'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
+import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
 
 interface RedisPrompt {
   id: string
@@ -203,9 +204,14 @@ export default function PromptPage({ params }: { params: { id: string } }) {
                 height={40}
                 className="rounded-full object-cover w-[40px] h-[40px]"
               />
-              <p className={cn("text-[#B02A15] text-lg", neuzeitGrotesk.className)}>
-                posted by @{userData[prompt?.authorFid || 0]?.username || prompt?.authorFid}
-              </p>
+              <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
+                posted by{' '}
+                <FarcasterUserMention
+                  username={userData[prompt?.authorFid || 0]?.username || String(prompt?.authorFid)}
+                  fid={prompt?.authorFid || 0}
+                  className="text-2xl"
+                />
+              </span>
             </div>
 
             <div className={cn("text-[#B02A15] text-6xl leading-[1.1] mb-2", txcPearl.className)}>

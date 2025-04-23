@@ -14,6 +14,7 @@ import { FarcasterUser } from '@/app/types'
 import { LoadingState } from '@/app/components/LoadingState'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 import { useRouter } from 'next/navigation'
+import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
 
 interface PromptAuthor {
   username: string
@@ -230,7 +231,12 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
           />
         </div>
         <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
-          posted by <span className="text-2xl">{userData[prompt.authorFid]?.username || prompt.authorFid}</span>
+          posted by{' '}
+          <FarcasterUserMention
+            username={userData[prompt.authorFid]?.username || String(prompt.authorFid)}
+            fid={prompt.authorFid}
+            className="text-2xl"
+          />
         </span>
       </div>
 
@@ -606,7 +612,7 @@ export default function PromptsPage() {
                                 e.currentTarget.src = '/images/default.png'
                               }}
                             />
-                            <span className={cn("text-sm text-[#B02A15]", neuzeitGrotesk.className)}>
+                            <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
                               posted by {userData[prompt.authorFid] 
                                 ? `@${userData[prompt.authorFid].username}`
                                 : `@${prompt.authorFid}`}
