@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useAccount, useConnect, useSendTransaction, useWaitForTransactionReceipt, useChainId } from "wagmi"
 import { encodeFunctionData, decodeFunctionResult } from 'viem'
 import { type BaseError } from 'viem'
-import { useNotification } from "@coinbase/onchainkit/minikit"
+import { useNotification, useMiniKit } from "@coinbase/onchainkit/minikit"
 import { useRouter } from 'next/navigation'
 import { redisHelper } from '@/app/lib/redis'
 import { CONTRACT_ADDRESS } from '@/app/constants'
@@ -35,9 +35,9 @@ function ConfirmPromptContent() {
   const { connect, connectors } = useConnect()
   const chainId = useChainId()
   const sendNotification = useNotification()
+  const { context: miniKitContext } = useMiniKit()
   const router = useRouter()
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
-  const [debugHistory, setDebugHistory] = useState<string[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingComplete, setProcessingComplete] = useState(false)
   const [promptId, setPromptId] = useState<string | null>(null)
@@ -67,14 +67,6 @@ function ConfirmPromptContent() {
     hash: txHash,
   })
 
-  // Add this helper function near the top of the component
-  const addDebugMessage = (message: string) => {
-    const timestamp = new Date().toISOString().split('T')[1].split('.')[0]
-    const formattedMessage = `[${timestamp}] ${message}`
-    setDebugHistory(prev => [...prev, formattedMessage])
-    setDebugMessage(formattedMessage)
-  }
-
   if (!prompt) {
     router.push('/create-prompt')
     return null
@@ -83,14 +75,14 @@ function ConfirmPromptContent() {
   async function handleSuccess(txHash: `0x${string}`) {
     // Prevent infinite loops
     if (retryCount > 2) {
-      addDebugMessage(`❌ Too many retries (${retryCount}). Please refresh and try again.`)
+      setDebugMessage(`❌ Too many retries (${retryCount}). Please refresh and try again.`)
       setProcessingComplete(true) // Force completion to stop retries
       return
     }
 
     // Check if we've already processed this transaction
     if (processedTxHashes.has(txHash)) {
-      addDebugMessage(`🔄 Transaction ${txHash} already processed.`)
+      setDebugMessage(`🔄 Transaction ${txHash} already processed.`)
       if (promptId) {
         setProcessingComplete(true)
       }
@@ -99,12 +91,12 @@ function ConfirmPromptContent() {
 
     try {
       setIsProcessing(true)
-      addDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
+      setDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
       
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
       
       if (!receipt) {
-        addDebugMessage(`❌ No receipt found for ${txHash}. Transaction may still be pending.`)
+        setDebugMessage(`❌ No receipt found for ${txHash}. Transaction may still be pending.`)
         return
       }
 
@@ -133,7 +125,7 @@ function ConfirmPromptContent() {
       }
 
       // Debug check for promptId type and format
-      addDebugMessage(`🔍 PromptId validation:\n- Type: ${typeof extractedPromptId}\n- Value: ${extractedPromptId}\n- Length: ${extractedPromptId.length}\n- Is valid number: ${!isNaN(Number(extractedPromptId))}`)
+      setDebugMessage(`🔍 PromptId validation:\n- Type: ${typeof extractedPromptId}\n- Value: ${extractedPromptId}\n- Length: ${extractedPromptId.length}\n- Is valid number: ${!isNaN(Number(extractedPromptId))}`)
 
       // Additional validation
       if (isNaN(Number(extractedPromptId))) {
@@ -141,33 +133,30 @@ function ConfirmPromptContent() {
       }
 
       setPromptId(extractedPromptId)
-      addDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
+      setDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
       
       // Mark transaction as processed
       setProcessedTxHashes(prev => new Set(prev).add(txHash))
 
-      // Get FID
-      const userRes = await fetch(`/api/users/wallet/${address}`)
-      if (!userRes.ok) {
-        throw new Error(`Failed to fetch FID: ${userRes.status}`)
+      // Get FID from MiniKit context
+      const authorFid = miniKitContext?.user?.fid
+      if (!authorFid) {
+        throw new Error('FID not found in MiniKit context')
       }
 
-      const userData = await userRes.json()
-      if (!userData.fid) {
-        throw new Error('FID not found in response')
-      }
+      setDebugMessage(`✅ FID retrieved from MiniKit context: ${authorFid}`)
 
       try {
         // Prepare and validate Redis data
         const redisData = {
           id: extractedPromptId,
           content: prompt as string,
-          authorFid: userData.fid,
+          authorFid,
           createdAt: Date.now(),
           expiresAt: Date.now() + 86400 * 1000,
         }
 
-        addDebugMessage(`🚀 Attempting to create prompt via API with data:\n${JSON.stringify(redisData, null, 2)}`)
+        setDebugMessage(`🚀 Attempting to create prompt via API with data:\n${JSON.stringify(redisData, null, 2)}`)
         
         // Use API route instead of direct Redis access
         const response = await fetch('/api/prompts/create', {
@@ -181,11 +170,11 @@ function ConfirmPromptContent() {
         const responseData = await response.json()
         
         if (!response.ok) {
-          addDebugMessage(`❌ API Error: ${responseData.error}\nStack: ${responseData.stack || 'No stack trace'}`)
+          setDebugMessage(`❌ API Error: ${responseData.error}\nStack: ${responseData.stack || 'No stack trace'}`)
           throw new Error(`API Error: ${responseData.error}`)
         }
 
-        addDebugMessage(`📝 API createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
+        setDebugMessage(`📝 API createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
 
         // Verify the write immediately
         try {
@@ -193,11 +182,11 @@ function ConfirmPromptContent() {
           const verifyData = await verifyResponse.json()
           
           if (!verifyResponse.ok) {
-            addDebugMessage(`❌ Verification failed: ${verifyData.error}`)
+            setDebugMessage(`❌ Verification failed: ${verifyData.error}`)
             throw new Error('Verification failed - prompt not found after write')
           }
           
-          addDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyData.result, null, 2)}`)
+          setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyData.result, null, 2)}`)
         } catch (verifyError) {
           const verifyErrorDetails = verifyError instanceof Error
             ? `${verifyError.message}\n${verifyError.stack}`
@@ -215,13 +204,13 @@ function ConfirmPromptContent() {
         const errorDetails = redisError instanceof Error
           ? `${redisError.message}\n${redisError.stack}`
           : JSON.stringify(redisError)
-        addDebugMessage(`❌ Redis Operation Failed:\nError Details: ${errorDetails}\nPrompt ID: ${extractedPromptId}`)
+        setDebugMessage(`❌ Redis Operation Failed:\nError Details: ${errorDetails}\nPrompt ID: ${extractedPromptId}`)
         console.error('Redis Error:', redisError)
         throw redisError // Re-throw to be caught by outer catch
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      addDebugMessage(`❌ Error: ${errorMessage}`)
+      setDebugMessage(`❌ Error: ${errorMessage}`)
       console.error('Error in handleSuccess:', err)
       
       // Increment retry counter
@@ -290,15 +279,13 @@ function ConfirmPromptContent() {
             />
           )}
 
-          {debugHistory.length > 0 && (
-            <div className="w-full mt-4 p-4 bg-black/50 rounded-lg max-h-[300px] overflow-y-auto">
+          {debugMessage && (
+            <div className="w-full mt-4 p-4 bg-white rounded-lg max-h-[300px] overflow-y-auto">
               <h3 className="text-[#B02A15] text-sm font-bold mb-2">Debug Log:</h3>
               <div className="space-y-1">
-                {debugHistory.map((message, index) => (
-                  <p key={index} className="text-[#B02A15] text-xs whitespace-pre-wrap">
-                    {message}
-                  </p>
-                ))}
+                <p className="text-gray-800 text-xs whitespace-pre-wrap">
+                  {debugMessage}
+                </p>
               </div>
             </div>
           )}
