@@ -37,6 +37,7 @@ function ConfirmPromptContent() {
   const sendNotification = useNotification()
   const router = useRouter()
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
+  const [debugHistory, setDebugHistory] = useState<string[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingComplete, setProcessingComplete] = useState(false)
   const [promptId, setPromptId] = useState<string | null>(null)
@@ -66,6 +67,14 @@ function ConfirmPromptContent() {
     hash: txHash,
   })
 
+  // Add this helper function near the top of the component
+  const addDebugMessage = (message: string) => {
+    const timestamp = new Date().toISOString().split('T')[1].split('.')[0]
+    const formattedMessage = `[${timestamp}] ${message}`
+    setDebugHistory(prev => [...prev, formattedMessage])
+    setDebugMessage(formattedMessage)
+  }
+
   if (!prompt) {
     router.push('/create-prompt')
     return null
@@ -74,14 +83,14 @@ function ConfirmPromptContent() {
   async function handleSuccess(txHash: `0x${string}`) {
     // Prevent infinite loops
     if (retryCount > 2) {
-      setDebugMessage(`❌ Too many retries (${retryCount}). Please refresh and try again.`)
+      addDebugMessage(`❌ Too many retries (${retryCount}). Please refresh and try again.`)
       setProcessingComplete(true) // Force completion to stop retries
       return
     }
 
     // Check if we've already processed this transaction
     if (processedTxHashes.has(txHash)) {
-      setDebugMessage(`🔄 Transaction ${txHash} already processed.`)
+      addDebugMessage(`🔄 Transaction ${txHash} already processed.`)
       if (promptId) {
         setProcessingComplete(true)
       }
@@ -90,12 +99,12 @@ function ConfirmPromptContent() {
 
     try {
       setIsProcessing(true)
-      setDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
+      addDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
       
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
       
       if (!receipt) {
-        setDebugMessage(`❌ No receipt found for ${txHash}. Transaction may still be pending.`)
+        addDebugMessage(`❌ No receipt found for ${txHash}. Transaction may still be pending.`)
         return
       }
 
@@ -124,7 +133,7 @@ function ConfirmPromptContent() {
       }
 
       // Debug check for promptId type and format
-      setDebugMessage(`🔍 PromptId validation:\n- Type: ${typeof extractedPromptId}\n- Value: ${extractedPromptId}\n- Length: ${extractedPromptId.length}\n- Is valid number: ${!isNaN(Number(extractedPromptId))}`)
+      addDebugMessage(`🔍 PromptId validation:\n- Type: ${typeof extractedPromptId}\n- Value: ${extractedPromptId}\n- Length: ${extractedPromptId.length}\n- Is valid number: ${!isNaN(Number(extractedPromptId))}`)
 
       // Additional validation
       if (isNaN(Number(extractedPromptId))) {
@@ -132,7 +141,7 @@ function ConfirmPromptContent() {
       }
 
       setPromptId(extractedPromptId)
-      setDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
+      addDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
       
       // Mark transaction as processed
       setProcessedTxHashes(prev => new Set(prev).add(txHash))
@@ -158,7 +167,7 @@ function ConfirmPromptContent() {
           expiresAt: Date.now() + 86400 * 1000,
         }
 
-        setDebugMessage(`🚀 Attempting to create prompt via API with data:\n${JSON.stringify(redisData, null, 2)}`)
+        addDebugMessage(`🚀 Attempting to create prompt via API with data:\n${JSON.stringify(redisData, null, 2)}`)
         
         // Use API route instead of direct Redis access
         const response = await fetch('/api/prompts/create', {
@@ -172,11 +181,11 @@ function ConfirmPromptContent() {
         const responseData = await response.json()
         
         if (!response.ok) {
-          setDebugMessage(`❌ API Error: ${responseData.error}\nStack: ${responseData.stack || 'No stack trace'}`)
+          addDebugMessage(`❌ API Error: ${responseData.error}\nStack: ${responseData.stack || 'No stack trace'}`)
           throw new Error(`API Error: ${responseData.error}`)
         }
 
-        setDebugMessage(`📝 API createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
+        addDebugMessage(`📝 API createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
 
         // Verify the write immediately
         try {
@@ -184,11 +193,11 @@ function ConfirmPromptContent() {
           const verifyData = await verifyResponse.json()
           
           if (!verifyResponse.ok) {
-            setDebugMessage(`❌ Verification failed: ${verifyData.error}`)
+            addDebugMessage(`❌ Verification failed: ${verifyData.error}`)
             throw new Error('Verification failed - prompt not found after write')
           }
           
-          setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyData.result, null, 2)}`)
+          addDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyData.result, null, 2)}`)
         } catch (verifyError) {
           const verifyErrorDetails = verifyError instanceof Error
             ? `${verifyError.message}\n${verifyError.stack}`
@@ -206,13 +215,13 @@ function ConfirmPromptContent() {
         const errorDetails = redisError instanceof Error
           ? `${redisError.message}\n${redisError.stack}`
           : JSON.stringify(redisError)
-        setDebugMessage(`❌ Redis Operation Failed:\nError Details: ${errorDetails}\nPrompt ID: ${extractedPromptId}`)
+        addDebugMessage(`❌ Redis Operation Failed:\nError Details: ${errorDetails}\nPrompt ID: ${extractedPromptId}`)
         console.error('Redis Error:', redisError)
         throw redisError // Re-throw to be caught by outer catch
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setDebugMessage(`❌ Error: ${errorMessage}`)
+      addDebugMessage(`❌ Error: ${errorMessage}`)
       console.error('Error in handleSuccess:', err)
       
       // Increment retry counter
@@ -281,10 +290,17 @@ function ConfirmPromptContent() {
             />
           )}
 
-          {debugMessage && (
-            <p className="text-[#B02A15] text-sm text-center mt-4 whitespace-pre-wrap">
-              Debug: {debugMessage}
-            </p>
+          {debugHistory.length > 0 && (
+            <div className="w-full mt-4 p-4 bg-black/50 rounded-lg max-h-[300px] overflow-y-auto">
+              <h3 className="text-[#B02A15] text-sm font-bold mb-2">Debug Log:</h3>
+              <div className="space-y-1">
+                {debugHistory.map((message, index) => (
+                  <p key={index} className="text-[#B02A15] text-xs whitespace-pre-wrap">
+                    {message}
+                  </p>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
