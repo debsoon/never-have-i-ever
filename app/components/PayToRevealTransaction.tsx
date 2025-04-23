@@ -166,7 +166,11 @@ export function PayToRevealTransaction({
         }
       } catch (err) {
         console.error('Error recording payment:', err)
-        setDebugMessage(`❌ Payment API Error:\n${err instanceof Error ? err.message : 'Unknown error'}`)
+        setDebugMessage(`❌ Payment API Error:\n${err instanceof Error ? err.message : 'Unknown error'}\nRequest Body:\n${JSON.stringify({ 
+          promptId, 
+          walletAddress: address, 
+          userFid: miniKitContext?.user?.fid 
+        }, null, 2)}`)
       }
     }
 

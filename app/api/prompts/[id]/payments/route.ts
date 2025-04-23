@@ -11,6 +11,7 @@ export async function GET(
   const userFid = searchParams.get('userFid')
 
   if (!userFid) {
+    console.error('[Payment API] Missing userFid in GET request')
     return NextResponse.json({ 
       error: 'User FID required',
       debugLog: {
@@ -21,11 +22,21 @@ export async function GET(
   }
 
   try {
+    console.log('[Payment API] Checking payment status:', {
+      promptId: params.id,
+      userFid
+    })
+
     // Check if user has paid using SISMEMBER
     const hasPaid = await kv.sismember(`prompt:${params.id}:payments`, userFid)
     // Get total paid count
     const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
     
+    console.log('[Payment API] Payment status check result:', {
+      hasPaid: Boolean(hasPaid),
+      totalPaid
+    })
+
     return NextResponse.json({
       hasPaid: Boolean(hasPaid),
       totalPaid,
@@ -38,7 +49,7 @@ export async function GET(
       }
     })
   } catch (error) {
-    console.error('Error checking payment status:', error)
+    console.error('[Payment API] Error checking payment status:', error)
     return NextResponse.json({ 
       error: 'Failed to check payment status',
       debugLog: {
@@ -57,9 +68,18 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { walletAddress, userFid, txHash } = await request.json()
+    const body = await request.json()
+    const { walletAddress, userFid, txHash } = body
+
+    console.log('[Payment API] Received payment request:', {
+      promptId: params.id,
+      walletAddress,
+      userFid,
+      txHash
+    })
 
     if (!userFid) {
+      console.error('[Payment API] Missing userFid in POST request')
       return NextResponse.json({ 
         error: 'User FID required',
         debugLog: {
@@ -73,6 +93,10 @@ export async function POST(
     // Check if payment already recorded using SISMEMBER
     const alreadyPaid = await kv.sismember(`prompt:${params.id}:payments`, userFid.toString())
     if (alreadyPaid) {
+      console.log('[Payment API] Payment already recorded:', {
+        promptId: params.id,
+        userFid
+      })
       const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
       return NextResponse.json({ 
         message: 'Payment already recorded',
@@ -88,6 +112,13 @@ export async function POST(
       })
     }
 
+    console.log('[Payment API] Recording new payment:', {
+      promptId: params.id,
+      userFid,
+      walletAddress: walletAddress?.toLowerCase(),
+      txHash
+    })
+
     // Record the payment details
     await Promise.all([
       // Add to payments set
@@ -101,6 +132,11 @@ export async function POST(
     ])
 
     const totalPaid = await kv.scard(`prompt:${params.id}:payments`)
+    console.log('[Payment API] Payment recorded successfully:', {
+      promptId: params.id,
+      userFid,
+      totalPaid
+    })
 
     return NextResponse.json({
       message: 'Payment recorded successfully',
@@ -116,7 +152,7 @@ export async function POST(
       }
     })
   } catch (error) {
-    console.error('Error recording payment:', error)
+    console.error('[Payment API] Error recording payment:', error)
     return NextResponse.json({ 
       error: 'Failed to record payment',
       debugLog: {
