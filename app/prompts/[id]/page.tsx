@@ -66,7 +66,7 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
   }
 }
 
-export default function PromptPage({ params }: { params: { id: string } }) {
+export default async function PromptPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { context } = useMiniKit()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -162,124 +162,146 @@ export default function PromptPage({ params }: { params: { id: string } }) {
     )
   }
 
+  // Construct the OG image URL with dynamic parameters
+  const ogImageUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/og`)
+  ogImageUrl.searchParams.set('prompt', prompt.content)
+  ogImageUrl.searchParams.set('count', String(prompt.totalConfessions))
+  ogImageUrl.searchParams.set('username', userData[prompt.authorFid]?.username || String(prompt.authorFid))
+
   return (
-    <div className="min-h-screen bg-[#B02A15] relative">
-      <Image
-        src="/images/background.png"
-        alt="Background"
-        fill
-        className="object-cover"
-      />
-      <div className="min-h-screen border-viewport border-[#B02A15] relative">
-        <div className="min-h-screen flex flex-col items-center px-8 py-12">
-          <div className="w-full flex justify-end mb-4">
-            <button 
-              onClick={() => router.back()}
-              className="hover:opacity-80 transition-opacity"
-            >
-              <Image
-                src="/images/icons/close-circle-line.png"
-                alt="Close"
-                width={32}
-                height={32}
-              />
-            </button>
-          </div>
-          <div className="text-center text-[#B02A15]">
-            <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>
-              TIME REMAINING
-            </h2>
-            
-            <div className={cn("text-5xl", neuzeitGrotesk.className)}>
-              {timeRemaining}
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col items-center justify-center text-center max-w-[500px]">
-            <div className="flex items-center gap-2 mb-2">
-              <Image
-                src={userData[prompt?.authorFid || 0]?.pfp_url || '/images/default.png'}
-                alt=""
-                width={40}
-                height={40}
-                className="rounded-full object-cover w-[40px] h-[40px]"
-              />
-              <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
-                posted by{' '}
-                <FarcasterUserMention
-                  username={userData[prompt?.authorFid || 0]?.username || String(prompt?.authorFid)}
-                  fid={prompt?.authorFid || 0}
-                  className="text-2xl"
+    <>
+      <head>
+        <meta property="og:image" content={ogImageUrl.toString()} />
+        <meta name="fc:frame" content={JSON.stringify({
+          version: "next",
+          image: ogImageUrl.toString(),
+          buttons: [
+            {
+              label: "🤫 Start Confessing",
+              action: "post_redirect"
+            }
+          ],
+          post_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/frame`
+        })} />
+      </head>
+      <div className="min-h-screen bg-[#B02A15] relative">
+        <Image
+          src="/images/background.png"
+          alt="Background"
+          fill
+          className="object-cover"
+        />
+        <div className="min-h-screen border-viewport border-[#B02A15] relative">
+          <div className="min-h-screen flex flex-col items-center px-8 py-12">
+            <div className="w-full flex justify-end mb-4">
+              <button 
+                onClick={() => router.back()}
+                className="hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src="/images/icons/close-circle-line.png"
+                  alt="Close"
+                  width={32}
+                  height={32}
                 />
-              </span>
+              </button>
             </div>
-
-            <div className={cn("text-[#B02A15] text-6xl leading-[1.1] mb-2", txcPearl.className)}>
-              <div className="whitespace-nowrap">NEVER HAVE</div>
-              <div className="whitespace-nowrap">I EVER...</div>
-            </div>
-
-            <div className={cn("text-[#B02A15] text-4xl mb-4", neuzeitGrotesk.className)}>
-              {prompt.content}
-            </div>
-
-            {!isExpired && !hasConfessed && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setConfessionType('have')
-                    setIsModalOpen(true)
-                  }}
-                  className={cn(
-                    "bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full",
-                    "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
-                    "border-2 border-[#B02A15]",
-                    txcPearl.className
-                  )}
-                >
-                  I HAVE
-                </button>
-                <button
-                  onClick={() => {
-                    setConfessionType('never')
-                    setIsModalOpen(true)
-                  }}
-                  className={cn(
-                    "bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full",
-                    "text-[28px] whitespace-nowrap hover:bg-[#FCD9A8] transition-colors",
-                    "border-2 border-[#B02A15]",
-                    txcPearl.className
-                  )}
-                >
-                  I HAVE NEVER
-                </button>
+            <div className="text-center text-[#B02A15]">
+              <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>
+                TIME REMAINING
+              </h2>
+              
+              <div className={cn("text-5xl", neuzeitGrotesk.className)}>
+                {timeRemaining}
               </div>
-            )}
-          </div>
-
-          <div className="text-center">
-            <div className={cn("text-[#B02A15] text-7xl mb-1", txcPearl.className)}>{prompt.totalConfessions}</div>
-            <div className={cn("text-[#B02A15] font-bold text-xl mb-1", neuzeitGrotesk.className)}>
-              CONFESSIONS AND COUNTING
             </div>
-            <PayToRevealTransaction 
-              promptId={prompt.id}
-              onSuccess={() => {
-                router.push(`/prompts/${prompt.id}/reveal`)
-              }}
-              className="mt-1"
-              variant="link"
-            />
+
+            <div className="flex-1 flex flex-col items-center justify-center text-center max-w-[500px]">
+              <div className="flex items-center gap-2 mb-2">
+                <Image
+                  src={userData[prompt.authorFid]?.pfp_url || '/images/default.png'}
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="rounded-full object-cover w-[40px] h-[40px]"
+                />
+                <span className={`text-[#B02A15] text-xl ${neuzeitGrotesk.className}`}>
+                  posted by{' '}
+                  <FarcasterUserMention
+                    username={userData[prompt.authorFid]?.username || String(prompt.authorFid)}
+                    fid={prompt.authorFid}
+                    className="text-2xl"
+                  />
+                </span>
+              </div>
+
+              <div className={cn("text-[#B02A15] text-6xl leading-[1.1] mb-2", txcPearl.className)}>
+                <div className="whitespace-nowrap">NEVER HAVE</div>
+                <div className="whitespace-nowrap">I EVER...</div>
+              </div>
+
+              <div className={cn("text-[#B02A15] text-4xl mb-4", neuzeitGrotesk.className)}>
+                {prompt.content}
+              </div>
+
+              {!isExpired && !hasConfessed && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setConfessionType('have')
+                      setIsModalOpen(true)
+                    }}
+                    className={cn(
+                      "bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full",
+                      "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
+                      "border-2 border-[#B02A15]",
+                      txcPearl.className
+                    )}
+                  >
+                    I HAVE
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConfessionType('never')
+                      setIsModalOpen(true)
+                    }}
+                    className={cn(
+                      "bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full",
+                      "text-[28px] whitespace-nowrap hover:bg-[#FCD9A8] transition-colors",
+                      "border-2 border-[#B02A15]",
+                      txcPearl.className
+                    )}
+                  >
+                    I HAVE NEVER
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="text-center">
+              <div className={cn("text-[#B02A15] text-7xl mb-1", txcPearl.className)}>{prompt.totalConfessions}</div>
+              <div className={cn("text-[#B02A15] font-bold text-xl mb-1", neuzeitGrotesk.className)}>
+                CONFESSIONS AND COUNTING
+              </div>
+              <PayToRevealTransaction 
+                promptId={prompt.id}
+                onSuccess={() => {
+                  router.push(`/prompts/${prompt.id}/reveal`)
+                }}
+                className="mt-1"
+                variant="link"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <ConfessionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        type={confessionType}
-        promptId={prompt.id}
-      />
-    </div>
+        <ConfessionModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          type={confessionType}
+          promptId={prompt.id}
+        />
+      </div>
+    </>
   )
 } 
