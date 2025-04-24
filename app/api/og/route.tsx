@@ -3,12 +3,35 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
+type Font = {
+  name: string;
+  data: ArrayBuffer;
+  style: 'normal' | 'italic';
+}
+
 async function loadFont(path: string) {
-  const url = process.env.NEXT_PUBLIC_BASE_URL 
-    ? new URL(path, process.env.NEXT_PUBLIC_BASE_URL).toString()
-    : `https://debbiedoes.fun${path}`
-  
-  return fetch(url).then((res) => res.arrayBuffer())
+  try {
+    // Try loading from public URL first
+    const publicUrl = `https://debbiedoes.fun${path}`
+    const response = await fetch(publicUrl)
+    if (response.ok) {
+      return response.arrayBuffer()
+    }
+
+    // If that fails and we have a base URL, try that
+    if (process.env.NEXT_PUBLIC_BASE_URL) {
+      const baseUrl = new URL(path, process.env.NEXT_PUBLIC_BASE_URL).toString()
+      const baseResponse = await fetch(baseUrl)
+      if (baseResponse.ok) {
+        return baseResponse.arrayBuffer()
+      }
+    }
+
+    throw new Error(`Failed to load font from ${path}`)
+  } catch (error) {
+    console.error(`Error loading font ${path}:`, error)
+    throw error
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -20,12 +43,37 @@ export async function GET(req: NextRequest) {
     const confessionCount = searchParams.get('count') || '58'
     const username = searchParams.get('username') || '@debbie'
 
-    // Load fonts
-    const [neuzeitGroteskRegular, neuzeitGroteskBold, txcPearl] = await Promise.all([
-      loadFont('/fonts/Neuzeit-Grotesk-Regular.ttf'),
-      loadFont('/fonts/Neuzeit-Grotesk-Bold.ttf'),
-      loadFont('/fonts/TXCPearl-Regular.ttf'),
-    ])
+    // Load fonts with proper error handling
+    let fonts: Font[] = []
+    try {
+      const [neuzeitGroteskRegular, neuzeitGroteskBold, txcPearl] = await Promise.all([
+        loadFont('/fonts/Neuzeit-Grotesk-Regular.ttf'),
+        loadFont('/fonts/Neuzeit-Grotesk-Bold.ttf'),
+        loadFont('/fonts/TXCPearl-Regular.ttf'),
+      ])
+
+      fonts = [
+        {
+          name: 'NeuzeitGrotesk',
+          data: neuzeitGroteskRegular,
+          style: 'normal',
+        },
+        {
+          name: 'NeuzeitGroteskBold',
+          data: neuzeitGroteskBold,
+          style: 'normal',
+        },
+        {
+          name: 'TXCPearl',
+          data: txcPearl,
+          style: 'normal',
+        },
+      ]
+    } catch (error) {
+      console.error('Failed to load fonts:', error)
+      // Use system fonts as fallback
+      fonts = []
+    }
 
     return new ImageResponse(
       (
@@ -53,7 +101,7 @@ export async function GET(req: NextRequest) {
               alignItems: 'center',
               gap: '8px',
               fontSize: '32px',
-              fontFamily: 'NeuzeitGrotesk',
+              fontFamily: fonts.length ? 'NeuzeitGrotesk' : 'system-ui',
             }}
           >
             posted by {username}
@@ -74,7 +122,7 @@ export async function GET(req: NextRequest) {
                 color: '#B02A15',
                 fontSize: '72px',
                 marginBottom: '20px',
-                fontFamily: 'TXCPearl',
+                fontFamily: fonts.length ? 'TXCPearl' : 'system-ui',
                 lineHeight: 1.1,
               }}
             >
@@ -86,7 +134,7 @@ export async function GET(req: NextRequest) {
                 fontSize: '64px',
                 maxWidth: '800px',
                 textAlign: 'center',
-                fontFamily: 'NeuzeitGrotesk',
+                fontFamily: fonts.length ? 'NeuzeitGrotesk' : 'system-ui',
               }}
             >
               {promptText}
@@ -125,7 +173,7 @@ export async function GET(req: NextRequest) {
               <span
                 style={{
                   fontSize: '72px',
-                  fontFamily: 'TXCPearl',
+                  fontFamily: fonts.length ? 'TXCPearl' : 'system-ui',
                   lineHeight: 1,
                 }}
               >
@@ -134,7 +182,7 @@ export async function GET(req: NextRequest) {
               <span
                 style={{
                   fontSize: '24px',
-                  fontFamily: 'NeuzeitGroteskBold',
+                  fontFamily: fonts.length ? 'NeuzeitGroteskBold' : 'system-ui',
                 }}
               >
                 CONFESSIONS AND COUNTING
@@ -146,28 +194,12 @@ export async function GET(req: NextRequest) {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: 'NeuzeitGrotesk',
-            data: neuzeitGroteskRegular,
-            style: 'normal',
-          },
-          {
-            name: 'NeuzeitGroteskBold',
-            data: neuzeitGroteskBold,
-            style: 'normal',
-          },
-          {
-            name: 'TXCPearl',
-            data: txcPearl,
-            style: 'normal',
-          },
-        ],
+        fonts,
       }
     )
   } catch (e: any) {
-    console.log(`${e.message}`)
-    return new Response(`Failed to generate the image`, {
+    console.error('Error generating OG image:', e)
+    return new Response(`Failed to generate the image: ${e.message}`, {
       status: 500,
     })
   }
