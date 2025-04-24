@@ -1,20 +1,14 @@
 import { ImageResponse } from '@vercel/og'
 import { NextRequest } from 'next/server'
+import { join } from 'path'
+import { readFileSync } from 'fs'
 
 export const runtime = 'edge'
 
-// Font loading
-const neuzeitGrotesk = fetch(
-  'https://debbbiedoes.fun/fonts/Neuzeit-Grotesk-Regular.ttf'
-).then((res) => res.arrayBuffer())
-
-const neuzeitGroteskBold = fetch(
-    'https://debbbiedoes.fun/fonts/Neuzeit-Grotesk-Bold.ttf'
-  ).then((res) => res.arrayBuffer())
-
-const txcPearl = fetch(
-  'https://debbbiedoes.fun/fonts/TXCPearl-Regular.ttf'
-).then((res) => res.arrayBuffer())
+// Load fonts from local files
+const neuzeitGroteskRegular = readFileSync(join(process.cwd(), 'public/fonts/Neuzeit-Grotesk-Regular.ttf'))
+const neuzeitGroteskBold = readFileSync(join(process.cwd(), 'public/fonts/Neuzeit-Grotesk-Bold.ttf'))
+const txcPearlRegular = readFileSync(join(process.cwd(), 'public/fonts/TXCPearl-Regular.ttf'))
 
 export async function GET(req: NextRequest) {
   try {
@@ -24,13 +18,6 @@ export async function GET(req: NextRequest) {
     const promptText = searchParams.get('prompt') || 'been kicked out of a bar.'
     const confessionCount = searchParams.get('count') || '58'
     const username = searchParams.get('username') || '@debbie'
-
-    // Load fonts
-    const [neuzeitGroteskData, neuzeitGroteskBoldData, txcPearlData] = await Promise.all([
-      neuzeitGrotesk,
-      neuzeitGroteskBold,
-      txcPearl,
-    ])
 
     return new ImageResponse(
       (
@@ -43,7 +30,7 @@ export async function GET(req: NextRequest) {
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
-            backgroundImage: 'url(https://debbbiedoes.fun/images/dynamicbackground.png)',
+            backgroundImage: 'url(https://debbiedoes.fun/images/dynamicbackground.png)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -109,6 +96,16 @@ export async function GET(req: NextRequest) {
               gap: '20px',
             }}
           >
+            <img
+              src="https://debbiedoes.fun/images/cup.png"
+              alt="Red Cup"
+              width="80"
+              height="80"
+              style={{
+                width: '80px',
+                height: '80px',
+              }}
+            />
             <div
               style={{
                 display: 'flex',
@@ -144,25 +141,20 @@ export async function GET(req: NextRequest) {
         fonts: [
           {
             name: 'NeuzeitGrotesk',
-            data: neuzeitGroteskData,
+            data: neuzeitGroteskRegular,
             style: 'normal',
           },
           {
             name: 'NeuzeitGroteskBold',
-            data: neuzeitGroteskBoldData,
+            data: neuzeitGroteskBold,
             style: 'normal',
           },
           {
             name: 'TXCPearl',
-            data: txcPearlData,
+            data: txcPearlRegular,
             style: 'normal',
           },
         ],
-        headers: {
-          'Cache-Control': 'public, max-age=1800, s-maxage=1800', // 30 minutes
-          'CDN-Cache-Control': 'public, max-age=1800, s-maxage=1800',
-          'Vercel-CDN-Cache-Control': 'public, max-age=1800, s-maxage=1800',
-        }
       }
     )
   } catch (e: any) {
