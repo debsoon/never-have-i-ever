@@ -178,8 +178,8 @@ const TAB_DIMENSIONS = {
     inactive: { width: 138, height: 50 }
   },
   responded: {
-    active: { width: 175, height: 56 },
-    inactive: { width: 175, height: 50 }
+    active: { width: 173, height: 56 },
+    inactive: { width: 173, height: 50 }
   }
 } as const
 
@@ -197,7 +197,7 @@ const TAB_OVERLAPS = {
   responded: { // Overlaps for RESPONDED tab
     active: {
       afterActiveCreated: '-2px',
-      afterInactiveCreated: '-4px'
+      afterInactiveCreated: '-8px'
     },
     inactive: {
       afterActiveCreated: '-8px',
@@ -530,7 +530,7 @@ export default function PromptsPage() {
                     )}
                     {sortedPrompts.map((prompt, index) => (
                       <div key={prompt.id}>
-                        <div className="p-6">
+                        <div className="p-4">
                           <div className="flex justify-between items-start mb-1">
                             <div className="w-8" />
                             <div className="flex items-center gap-2">
