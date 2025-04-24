@@ -1,14 +1,15 @@
 import { ImageResponse } from '@vercel/og'
 import { NextRequest } from 'next/server'
-import { join } from 'path'
-import { readFileSync } from 'fs'
 
 export const runtime = 'edge'
 
-// Load fonts from local files
-const neuzeitGroteskRegular = readFileSync(join(process.cwd(), 'public/fonts/Neuzeit-Grotesk-Regular.ttf'))
-const neuzeitGroteskBold = readFileSync(join(process.cwd(), 'public/fonts/Neuzeit-Grotesk-Bold.ttf'))
-const txcPearlRegular = readFileSync(join(process.cwd(), 'public/fonts/TXCPearl-Regular.ttf'))
+async function loadFont(path: string) {
+  const url = process.env.NEXT_PUBLIC_BASE_URL 
+    ? new URL(path, process.env.NEXT_PUBLIC_BASE_URL).toString()
+    : `https://debbiedoes.fun${path}`
+  
+  return fetch(url).then((res) => res.arrayBuffer())
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,6 +19,13 @@ export async function GET(req: NextRequest) {
     const promptText = searchParams.get('prompt') || 'been kicked out of a bar.'
     const confessionCount = searchParams.get('count') || '58'
     const username = searchParams.get('username') || '@debbie'
+
+    // Load fonts
+    const [neuzeitGroteskRegular, neuzeitGroteskBold, txcPearl] = await Promise.all([
+      loadFont('/fonts/Neuzeit-Grotesk-Regular.ttf'),
+      loadFont('/fonts/Neuzeit-Grotesk-Bold.ttf'),
+      loadFont('/fonts/TXCPearl-Regular.ttf'),
+    ])
 
     return new ImageResponse(
       (
@@ -151,7 +159,7 @@ export async function GET(req: NextRequest) {
           },
           {
             name: 'TXCPearl',
-            data: txcPearlRegular,
+            data: txcPearl,
             style: 'normal',
           },
         ],
