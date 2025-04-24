@@ -66,7 +66,7 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
   }
 }
 
-export default async function PromptPage({ params }: { params: { id: string } }) {
+export default function PromptPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { context } = useMiniKit()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -80,6 +80,14 @@ export default async function PromptPage({ params }: { params: { id: string } })
   const hasConfessed = prompt?.confessions.some(
     (confession) => confession.userFid === context?.user?.fid
   ) || false
+
+  // Construct the OG image URL with dynamic parameters
+  const ogImageUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/og`)
+  if (prompt) {
+    ogImageUrl.searchParams.set('prompt', prompt.content)
+    ogImageUrl.searchParams.set('count', String(prompt.totalConfessions))
+    ogImageUrl.searchParams.set('username', userData[prompt.authorFid]?.username || String(prompt.authorFid))
+  }
 
   useEffect(() => {
     async function fetchPrompt() {
@@ -162,27 +170,25 @@ export default async function PromptPage({ params }: { params: { id: string } })
     )
   }
 
-  // Construct the OG image URL with dynamic parameters
-  const ogImageUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/og`)
-  ogImageUrl.searchParams.set('prompt', prompt.content)
-  ogImageUrl.searchParams.set('count', String(prompt.totalConfessions))
-  ogImageUrl.searchParams.set('username', userData[prompt.authorFid]?.username || String(prompt.authorFid))
-
   return (
     <>
       <head>
-        <meta property="og:image" content={ogImageUrl.toString()} />
-        <meta name="fc:frame" content={JSON.stringify({
-          version: "next",
-          image: ogImageUrl.toString(),
-          buttons: [
-            {
-              label: "🤫 Start Confessing",
-              action: "post_redirect"
-            }
-          ],
-          post_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/frame`
-        })} />
+        {prompt && (
+          <>
+            <meta property="og:image" content={ogImageUrl.toString()} />
+            <meta name="fc:frame" content={JSON.stringify({
+              version: "next",
+              image: ogImageUrl.toString(),
+              buttons: [
+                {
+                  label: "Play Now",
+                  action: "post_redirect"
+                }
+              ],
+              post_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/frame`
+            })} />
+          </>
+        )}
       </head>
       <div className="min-h-screen bg-[#B02A15] relative">
         <Image
