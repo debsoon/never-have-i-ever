@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
 import { getFarcasterUserByFid } from '@/app/lib/farcaster'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     // Get recent prompt IDs
@@ -9,7 +12,7 @@ export async function GET() {
     
     // Fetch full prompt data for each ID
     const prompts = await Promise.all(
-      promptIds.map(async (id) => {
+      promptIds.map(async (id: string) => {
         const prompt = await redisHelper.getPrompt(id)
         if (!prompt) return null
 
