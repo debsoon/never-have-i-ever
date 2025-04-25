@@ -21,10 +21,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     },
     other: {
       'fc:frame': 'vNext',
+      'fc:frame:post_url': frameApiUrl,
       'fc:frame:image': imageUrl,
       'fc:frame:button:1': '🤫 Start Confessing',
-      'fc:frame:post_url': frameApiUrl,
-      'og:image': imageUrl,
+      'fc:frame:input:text': 'Enter your confession...',
       'fc:frame:state': params.id,
     },
   }
