@@ -443,9 +443,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   onClick={async () => {
                     try {
                       const { sdk } = await import('@farcaster/frame-sdk')
+                      const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
                       await sdk.actions.composeCast({ 
-                        text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀`,
-                        embeds: [`https://debbiedoes.fun/prompts/${params.id}`]
+                        text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
+                        embeds: [promptUrl]
                       })
                     } catch (error) {
                       console.error('Error sharing to Farcaster:', error)

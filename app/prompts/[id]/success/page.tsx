@@ -103,9 +103,10 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
                 onClick={async () => {
                   try {
                     const { sdk } = await import('@farcaster/frame-sdk')
+                    const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
                     await sdk.actions.composeCast({ 
-                      text: `Never have I ever ${data.content}.. or have I?\n\nJoin ${data.totalConfessions} others in confessing 👀`,
-                      embeds: [`https://debbiedoes.fun/prompts/${params.id}`]
+                      text: `Never have I ever ${data.content}.. or have I?\n\nJoin ${data.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
+                      embeds: [promptUrl]
                     })
                   } catch (error) {
                     console.error('Error sharing to Farcaster:', error)
