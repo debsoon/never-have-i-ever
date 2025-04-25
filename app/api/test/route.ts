@@ -1,11 +1,8 @@
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 import { NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
-
-// Force dynamic rendering for this route
-export const dynamic = 'force-dynamic'
-// Disable static optimization
-export const fetchCache = 'force-no-store'
-export const revalidate = 0
 
 export async function GET() {
   try {
@@ -15,7 +12,8 @@ export async function GET() {
 
     const redis = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      cache: 'no-store'
     })
 
     // Try to get the test prompt
@@ -30,23 +28,12 @@ export async function GET() {
         hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN
       },
       prompt
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, must-revalidate',
-        'CDN-Cache-Control': 'no-store',
-      }
     })
   } catch (error) {
     console.error('Redis test error:', error)
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : String(error)
-    }, { 
-      status: 500,
-      headers: {
-        'Cache-Control': 'no-store, must-revalidate',
-        'CDN-Cache-Control': 'no-store',
-      }
-    })
+    }, { status: 500 })
   }
 } 

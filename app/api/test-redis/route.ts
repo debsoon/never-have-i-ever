@@ -1,11 +1,7 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
-
-// Force dynamic rendering for this route
-export const dynamic = 'force-dynamic'
-// Disable static optimization
-export const fetchCache = 'force-no-store'
-export const revalidate = 0
 
 export async function GET() {
   try {
@@ -40,11 +36,6 @@ export async function GET() {
       testValue: value,
       allKeys: keys,
       promptData: promptData
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, must-revalidate',
-        'CDN-Cache-Control': 'no-store',
-      }
     })
   } catch (error) {
     console.error('Redis test error:', error)
@@ -56,12 +47,6 @@ export async function GET() {
       success: false, 
       error: 'Redis connection failed',
       details: error instanceof Error ? error.message : String(error)
-    }, { 
-      status: 500,
-      headers: {
-        'Cache-Control': 'no-store, must-revalidate',
-        'CDN-Cache-Control': 'no-store',
-      }
-    })
+    }, { status: 500 })
   }
 } 

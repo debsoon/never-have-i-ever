@@ -1,12 +1,8 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
 import { getFarcasterUserByFid } from '@/app/lib/farcaster'
-
-// Force dynamic rendering for this route
-export const dynamic = 'force-dynamic'
-// Disable static optimization
-export const fetchCache = 'force-no-store'
-export const revalidate = 0
 
 export async function GET() {
   try {
@@ -15,7 +11,7 @@ export async function GET() {
     
     // Fetch full prompt data for each ID
     const prompts = await Promise.all(
-      promptIds.map(async (id: string) => {
+      promptIds.map(async (id) => {
         const prompt = await redisHelper.getPrompt(id)
         if (!prompt) return null
 
@@ -33,13 +29,7 @@ export async function GET() {
     // Filter out null values and return
     return NextResponse.json(
       prompts.filter(Boolean),
-      { 
-        status: 200,
-        headers: {
-          'Cache-Control': 'no-store, must-revalidate',
-          'CDN-Cache-Control': 'no-store',
-        }
-      }
+      { status: 200 }
     )
   } catch (error) {
     console.error('Error fetching prompts:', error)

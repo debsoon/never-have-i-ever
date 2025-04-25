@@ -1,5 +1,8 @@
 import { Redis } from '@upstash/redis'
 
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 // Key prefixes for different data types
 const KEYS = {
   PROMPT: (id: string) => `prompt:${id}`,
@@ -169,27 +172,32 @@ class LocalStorageHelper implements StorageInterface {
 
 // Redis storage adapter
 class RedisStorageAdapter implements StorageInterface {
-  private isConnected: boolean = false
+  private redis: Redis
+  private initialized: boolean = false
 
-  constructor(private redis: Redis) {
+  constructor() {
     console.log('Redis: Initializing RedisStorageAdapter with URL:', process.env.UPSTASH_REDIS_REST_URL)
-    this.verifyConnection()
+    this.redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      cache: 'no-store',
+    })
   }
 
   private async verifyConnection() {
     try {
       await this.redis.ping()
       console.log('Redis: Connection verified successfully')
-      this.isConnected = true
+      this.initialized = true
     } catch (error) {
       console.error('Redis: Connection verification failed:', error)
-      this.isConnected = false
+      this.initialized = false
       throw new Error(`Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   async createPrompt(prompt: Omit<StoredPrompt, 'totalConfessions'>): Promise<StoredPrompt> {
-    if (!this.isConnected) {
+    if (!this.initialized) {
       console.error('Redis: Attempting to create prompt without verified connection')
       await this.verifyConnection()
     }
@@ -300,7 +308,7 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async recordPayment(payment: PaymentStatus): Promise<void> {
-    if (!this.isConnected) {
+    if (!this.initialized) {
       console.error('Redis: Attempting to record payment without verified connection')
       await this.verifyConnection()
     }
@@ -327,7 +335,7 @@ class RedisStorageAdapter implements StorageInterface {
   }
 
   async hasUserPaid(promptId: string, userFid: number): Promise<boolean> {
-    if (!this.isConnected) {
+    if (!this.initialized) {
       console.error('Redis: Attempting to check payment without verified connection')
       await this.verifyConnection()
     }
@@ -363,10 +371,7 @@ export class RedisHelperClass {
     
     if (typeof window === 'undefined' && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
       console.log('Redis: Using RedisStorageAdapter')
-      this.storage = new RedisStorageAdapter(new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN
-      }))
+      this.storage = new RedisStorageAdapter()
     } else {
       console.log('Redis: Using LocalStorageHelper')
       this.storage = new LocalStorageHelper()

@@ -5,7 +5,7 @@ import { type ReactNode } from 'react';
 import { ClientLayout } from './client-layout';
 import { Inter } from 'next/font/google'
 import { Providers } from './providers'
-import type { Metadata, Viewport } from 'next'
+import { Metadata } from 'next'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,13 +23,13 @@ const frameMetadata = {
   }
 }
 
-export const viewport: Viewport = {
+export const viewport = {
   width: 'device-width',
   initialScale: 1,
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://debbiedoes.fun'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://debbiedoes.fun'),
   title: 'Debbie Does Never Have I Ever',
   description: 'A onchain game of confessions and revelations',
   openGraph: {

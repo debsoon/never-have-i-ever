@@ -1,15 +1,14 @@
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 import { NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
 import type { StoredConfession } from '@/app/lib/redis'
 
-export async function GET(
-  request: Request,
-  { params }: { params: { promptId: string } }
-) {
+export async function GET(request: Request) {
   try {
-    // Extract promptId from the URL
-    const url = new URL(request.url)
-    const promptId = url.searchParams.get('id')
+    const { searchParams } = new URL(request.url)
+    const promptId = searchParams.get('id')
     
     if (!promptId) {
       return NextResponse.json(
@@ -18,8 +17,8 @@ export async function GET(
       )
     }
 
-    // Fetch prompt data
     const prompt = await redisHelper.getPrompt(promptId)
+    
     if (!prompt) {
       return NextResponse.json(
         { error: 'Prompt not found' },
@@ -61,7 +60,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching prompt:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch prompt data' },
+      { error: 'Failed to fetch prompt' },
       { status: 500 }
     )
   }

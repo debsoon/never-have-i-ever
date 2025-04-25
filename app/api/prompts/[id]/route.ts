@@ -1,12 +1,9 @@
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 import { NextResponse } from 'next/server'
 import { redisHelper } from '@/app/lib/redis'
 import { fetchFarcasterUsers } from '@/app/utils/farcaster'
-
-// Force dynamic rendering for this route
-export const dynamic = 'force-dynamic'
-// Disable static optimization
-export const fetchCache = 'force-no-store'
-export const revalidate = 0
 
 export async function GET(
   request: Request,
@@ -61,12 +58,7 @@ export async function GET(
     }
 
     console.log('API: Prepared response:', response)
-    return NextResponse.json(response, {
-      headers: {
-        'Cache-Control': 'no-store, must-revalidate',
-        'CDN-Cache-Control': 'no-store',
-      }
-    })
+    return NextResponse.json(response)
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
