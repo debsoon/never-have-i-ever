@@ -4,7 +4,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`).then(res => res.json())
   
   const imageUrl = `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
-  const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+  const frameApiUrl = `https://debbiedoes.fun/api/frame`
 
   return {
     title: `Never Have I Ever: ${prompt.content}`,
@@ -22,8 +22,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     other: {
       'fc:frame': 'vNext',
       'fc:frame:image': imageUrl,
-      'fc:frame:post_url': promptUrl,
       'fc:frame:button:1': '🤫 Start Confessing',
+      'fc:frame:post_url': frameApiUrl,
+      'og:image': imageUrl,
+      'fc:frame:state': params.id,
     },
   }
 } 
