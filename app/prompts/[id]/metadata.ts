@@ -4,7 +4,20 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`).then(res => res.json())
   
   const imageUrl = `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
-  const frameApiUrl = `https://debbiedoes.fun/api/frame`
+  const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+
+  // Create the frame metadata object according to the docs
+  const frameMetadata = {
+    version: "next",
+    imageUrl: imageUrl,
+    button: {
+      title: "🤫 Start Confessing",
+      action: {
+        type: "launch_frame",
+        url: promptUrl
+      }
+    }
+  }
 
   return {
     title: `Never Have I Ever: ${prompt.content}`,
@@ -20,12 +33,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       }],
     },
     other: {
-      'fc:frame': 'vNext',
-      'fc:frame:post_url': frameApiUrl,
-      'fc:frame:image': imageUrl,
-      'fc:frame:button:1': '🤫 Start Confessing',
-      'fc:frame:input:text': 'Enter your confession...',
-      'fc:frame:state': params.id,
+      'fc:frame': JSON.stringify(frameMetadata),
     },
   }
 } 

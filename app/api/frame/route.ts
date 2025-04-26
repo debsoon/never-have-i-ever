@@ -11,6 +11,19 @@ export async function POST(req: NextRequest) {
     const imageUrl = `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
     const promptUrl = `https://debbiedoes.fun/prompts/${state}`
 
+    // Create the frame metadata object
+    const frameMetadata = {
+      version: "next",
+      imageUrl: imageUrl,
+      button: {
+        title: "🤫 Start Confessing",
+        action: {
+          type: "launch_frame",
+          url: promptUrl
+        }
+      }
+    }
+
     // Return HTML with frame metadata
     const html = `
       <!DOCTYPE html>
@@ -20,11 +33,7 @@ export async function POST(req: NextRequest) {
           <meta property="og:title" content="Never Have I Ever: ${prompt.content}" />
           <meta property="og:description" content="Join ${prompt.totalConfessions} others in confessing" />
           <meta property="og:image" content="${imageUrl}" />
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:post_url" content="${promptUrl}" />
-          <meta property="fc:frame:image" content="${imageUrl}" />
-          <meta property="fc:frame:button:1" content="🤫 Start Confessing" />
-          <meta property="fc:frame:state" content="${state}" />
+          <meta property="fc:frame" content='${JSON.stringify(frameMetadata)}' />
           <meta http-equiv="refresh" content="0;url=${promptUrl}" />
         </head>
         <body>
