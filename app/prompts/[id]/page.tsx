@@ -172,31 +172,29 @@ export default function PromptPage({ params }: { params: { id: string } }) {
         className="object-cover"
       />
       <div className="min-h-screen border-viewport border-[#B02A15] relative">
-        <div className="min-h-screen flex flex-col items-center px-8 py-12">
-          <div className="w-full flex justify-end mb-4">
-            <button 
-              onClick={() => router.back()}
-              className="hover:opacity-80 transition-opacity"
-            >
-              <Image
-                src="/images/icons/close-circle-line.png"
-                alt="Close"
-                width={32}
-                height={32}
-              />
-            </button>
-          </div>
+        <button 
+          onClick={() => router.back()}
+          className="hover:opacity-80 transition-opacity absolute top-8 right-8 z-10"
+        >
+          <Image
+            src="/images/icons/close-circle-line.png"
+            alt="Close"
+            width={32}
+            height={32}
+          />
+        </button>
+        <div className="w-full flex flex-col items-center pt-8">
           <div className="text-center text-[#B02A15]">
             <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>
               TIME REMAINING
             </h2>
-            
             <div className={cn("text-5xl", neuzeitGrotesk.className)}>
               {timeRemaining}
             </div>
           </div>
-
-          <div className="flex-1 flex flex-col items-center justify-center text-center max-w-[500px]">
+        </div>
+        <div className="min-h-screen flex flex-col items-center">
+          <div className="flex-1 flex flex-col items-center justify-center text-center max-w-[500px] px-8">
             <div className="flex items-center gap-2 mb-2">
               <Image
                 src={userData[prompt?.authorFid || 0]?.pfp_url || '/images/default.png'}
@@ -225,7 +223,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
             </div>
 
             {!isExpired && !hasConfessed && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => {
                     setConfessionType('have')
