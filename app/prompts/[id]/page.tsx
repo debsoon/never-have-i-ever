@@ -185,7 +185,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
         </button>
         <div className="w-full flex flex-col items-center pt-8">
           <div className="text-center text-[#B02A15]">
-            <h2 className={cn("text-xl mb-1", neuzeitGrotesk.className)}>
+            <h2 className={cn("text-xl mt-4 mb-1", neuzeitGrotesk.className)}>
               TIME REMAINING
             </h2>
             <div className={cn("text-5xl", neuzeitGrotesk.className)}>
@@ -223,7 +223,7 @@ export default function PromptPage({ params }: { params: { id: string } }) {
             </div>
 
             {!isExpired && !hasConfessed && (
-              <div className="flex gap-2 mb-6">
+              <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setConfessionType('have')

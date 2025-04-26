@@ -210,6 +210,9 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
   const router = useRouter()
   
   const getRevealHref = () => {
+    if (prompt.status === 'ended') {
+      return `/prompts/${prompt.id}/reveal`
+    }
     if (prompt.hasPaid) {
       return `/prompts/${prompt.id}/reveal`
     }
@@ -360,6 +363,9 @@ export default function PromptsPage() {
   })
 
   const getRevealHref = (prompt: PromptWithStatus) => {
+    if (prompt.status === 'ended') {
+      return `/prompts/${prompt.id}/reveal`
+    }
     if (prompt.hasPaid) {
       return `/prompts/${prompt.id}/reveal`
     }
@@ -622,7 +628,7 @@ export default function PromptsPage() {
                             </span>
                           </div>
 
-                          <h2 className={cn("text-2xl mb-2 text-[#B02A15]", neuzeitGrotesk.className)}>
+                          <h2 className={cn("text-2xl mb-4 text-[#B02A15]", neuzeitGrotesk.className)}>
                             {prompt.content}
                           </h2>
 
