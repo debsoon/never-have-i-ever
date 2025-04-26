@@ -144,9 +144,7 @@ export default function RevealPage({ params }: { params: { id: string } }) {
 
       if (diff <= 0) {
         setTimeRemaining('EXPIRED')
-        if (process.env.NODE_ENV !== 'development') {
-          setIsExpired(true)
-        }
+        setIsExpired(true)
         return
       }
 
@@ -159,9 +157,6 @@ export default function RevealPage({ params }: { params: { id: string } }) {
       const formattedSeconds = String(seconds).padStart(2, '0')
 
       setTimeRemaining(`${formattedHours}:${formattedMinutes}:${formattedSeconds}`)
-      if (process.env.NODE_ENV !== 'development') {
-        setIsExpired(false)
-      }
     }
 
     updateTimeRemaining()
@@ -237,13 +232,6 @@ export default function RevealPage({ params }: { params: { id: string } }) {
       fireConfetti();
     }
   }, [hasPaid, isExpired]);
-
-  // Add redirect for State 5
-  useEffect(() => {
-    if (!isLoading && !hasPaid && !isExpired && process.env.NODE_ENV !== 'development') {
-      window.location.href = `/prompts/${params.id}/success`
-    }
-  }, [isLoading, hasPaid, isExpired, params.id]);
 
   // Add logging for debugging
   useEffect(() => {
