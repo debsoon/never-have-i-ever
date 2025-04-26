@@ -245,6 +245,11 @@ export default function RevealPage({ params }: { params: { id: string } }) {
     }
   }, [isLoading, hasPaid, isExpired, params.id]);
 
+  // Add logging for debugging
+  useEffect(() => {
+    console.log({ hasPaid, isExpired, totalPaid, isLoading });
+  }, [hasPaid, isExpired, totalPaid, isLoading]);
+
   if (isLoading) {
     return <LoadingState />
   }
@@ -310,10 +315,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                   </h1>
                   
                   <div className={cn("text-[#B02A15] mb-1", txcPearl.className)}>
-                    <span className="text-8xl block leading-[0.9]">
+                    <span className="text-7xl block leading-[0.9]">
                       {haveConfessions.length} OUT OF
                     </span>
-                    <span className="text-8xl block leading-[0.9]">
+                    <span className="text-7xl block leading-[0.9]">
                       {prompt.totalConfessions} HAVE
                     </span>
                   </div>
@@ -521,10 +526,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
                 </h1>
                 
                 <div className={cn("text-[#B02A15] mb-1", txcPearl.className)}>
-                  <span className="text-8xl block leading-[0.9]">
+                  <span className="text-7xl block leading-[0.9]">
                     {haveConfessions.length} OUT OF
                   </span>
-                  <span className="text-8xl block leading-[0.9]">
+                  <span className="text-7xl block leading-[0.9]">
                     {prompt.totalConfessions} HAVE
                   </span>
                 </div>
@@ -604,10 +609,10 @@ export default function RevealPage({ params }: { params: { id: string } }) {
               </h1>
               
               <div className={cn("text-[#B02A15] mb-1", txcPearl.className)}>
-                <span className="text-8xl block leading-[0.9]">
+                <span className="text-7xl block leading-[0.9]">
                   {haveConfessions.length} OUT OF
                 </span>
-                <span className="text-8xl block leading-[0.9]">
+                <span className="text-7xl block leading-[0.9]">
                   {prompt.totalConfessions} HAVE
                 </span>
               </div>
@@ -713,6 +718,11 @@ export default function RevealPage({ params }: { params: { id: string } }) {
         </div>
       </>
     )
+  }
+
+  // Add a loading guard for expired states
+  if (isExpired && typeof totalPaid === 'undefined') {
+    return <LoadingState />;
   }
 
   // Default state: Not paid, not expired

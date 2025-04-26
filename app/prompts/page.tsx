@@ -240,7 +240,7 @@ function PromptCard({ prompt, userData }: { prompt: PromptWithStatus; userData: 
         </span>
       </div>
 
-      <p className={`text-[#B02A15] text-4xl mb-4 ${neuzeitGrotesk.className}`}>
+      <p className={`text-[#B02A15] text-4xl mb-6 ${neuzeitGrotesk.className}`}>
         {prompt.content}
       </p>
 
@@ -531,7 +531,7 @@ export default function PromptsPage() {
                     {sortedPrompts.map((prompt, index) => (
                       <div key={prompt.id}>
                         <div className="p-4">
-                          <div className="flex justify-between items-start mb-1">
+                          <div className="flex justify-between items-start mb-3">
                             <div className="w-8" />
                             <div className="flex items-center gap-2">
                               {prompt.status === 'new' && (
