@@ -1,6 +1,6 @@
 export function formatTimeLeft(timestamp: number): string {
   const now = Date.now()
-  const diff = timestamp - now
+  let diff = timestamp - now
 
   if (diff < 0) {
     return 'Expired'
@@ -8,17 +8,10 @@ export function formatTimeLeft(timestamp: number): string {
 
   const hours = Math.floor(diff / (1000 * 60 * 60))
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
 
-  if (hours > 24) {
-    const days = Math.floor(hours / 24)
-    return `${days} day${days === 1 ? '' : 's'}`
-  }
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-
-  return `${minutes}m`
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
 }
 
 export function formatTimeAgo(timestamp: number): string {
