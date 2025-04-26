@@ -1,3 +1,4 @@
+import { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -14,6 +15,48 @@ import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
 import ClientPromptPage from './ClientPromptPage'
+
+// 👇 NEW: Dynamic generateMetadata function
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://debbiedoes.fun'}/api/prompts/${params.id}`, {
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+  })
+
+  const prompt = res.ok ? await res.json() : null
+
+  if (!prompt) {
+    return {
+      title: 'Never Have I Ever',
+      description: 'Confess your secrets onchain.',
+    }
+  }
+
+  const imageUrl = `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
+  const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+
+  return {
+    title: `Never Have I Ever: ${prompt.content}`,
+    description: `Join ${prompt.totalConfessions} others in confessing.`,
+    openGraph: {
+      title: `Never Have I Ever: ${prompt.content}`,
+      description: `Join ${prompt.totalConfessions} others in confessing.`,
+      images: [{
+        url: imageUrl,
+        width: 1200,
+        height: 800,
+        alt: 'Never Have I Ever',
+      }],
+    },
+    other: {
+      'fc:frame:image': imageUrl,
+      'fc:frame:button:1': '🤫 Start Confessing',
+      'fc:frame:button:1:action': 'post_redirect',
+      'fc:frame:post_url': promptUrl,
+    },
+  }
+}
+
 
 interface RedisPrompt {
   id: string
@@ -76,3 +119,4 @@ export default async function PromptPage({ params }: { params: { id: string } })
 
   return <ClientPromptPage prompt={prompt} params={params} />
 } 
+
