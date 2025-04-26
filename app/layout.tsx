@@ -28,6 +28,20 @@ export const viewport = {
   initialScale: 1,
 }
 
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://debbiedoes.fun'),
+  title: 'Debbie Does Never Have I Ever',
+  description: 'A onchain game of confessions and revelations',
+  openGraph: {
+    title: 'Debbie Does Never Have I Ever',
+    description: 'A onchain game of confessions and revelations',
+    images: ['/images/framecover.png'],
+  },
+  other: {
+    'fc:frame': JSON.stringify(frameMetadata),
+  },
+}
+
 export default function RootLayout({
   children,
 }: {
