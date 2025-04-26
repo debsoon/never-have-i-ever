@@ -35,6 +35,17 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const imageUrl = `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
   const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
 
+  const frameMetadata = {
+    version: "vNext",
+    image: imageUrl,
+    post_url: promptUrl,
+    buttons: [
+      {
+        label: "🤫 Start Confessing"
+      }
+    ]
+  }
+
   return {
     title: `Never Have I Ever: ${prompt.content}`,
     description: `Join ${prompt.totalConfessions} others in confessing.`,
@@ -49,10 +60,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       }],
     },
     other: {
-      'fc:frame:image': imageUrl,
-      'fc:frame:button:1': '🤫 Start Confessing',
-      'fc:frame:button:1:action': 'post_redirect',
-      'fc:frame:post_url': promptUrl,
+      'fc:frame': JSON.stringify(frameMetadata),
     },
   }
 }
