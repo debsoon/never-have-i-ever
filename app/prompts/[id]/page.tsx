@@ -18,33 +18,7 @@ import ClientPromptPage from './ClientPromptPage'
 
 // 👇 NEW: Dynamic generateMetadata function
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://debbiedoes.fun'}/api/prompts/${params.id}`, {
-    headers: { 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  })
-
-  const prompt = res.ok ? await res.json() : null
-
-  if (!prompt) {
-    return {
-      title: 'Never Have I Ever',
-      description: 'Confess your secrets onchain.',
-    }
-  }
-
-  const imageUrl = `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
-  const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
-
-  const frameMetadata = {
-    version: "vNext",
-    image: imageUrl,
-    post_url: promptUrl,
-    buttons: [
-      {
-        label: "🤫 Start Confessing"
-      }
-    ]
-  }
+  const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`, { cache: 'no-store' }).then(res => res.json())
 
   return {
     title: `Never Have I Ever: ${prompt.content}`,
@@ -52,19 +26,18 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     openGraph: {
       title: `Never Have I Ever: ${prompt.content}`,
       description: `Join ${prompt.totalConfessions} others in confessing.`,
-      images: [{
-        url: imageUrl,
-        width: 1200,
-        height: 800,
-        alt: 'Never Have I Ever',
-      }],
+      images: [`https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
     },
     other: {
-      'fc:frame': JSON.stringify(frameMetadata),
-    },
+      "fc:frame": JSON.stringify({
+        version: "vNext",
+        image: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
+        post_url: `https://debbiedoes.fun/prompts/${params.id}`,
+        buttons: [{ label: "🤫 Start Confessing" }]
+      })
+    }
   }
 }
-
 
 interface RedisPrompt {
   id: string
