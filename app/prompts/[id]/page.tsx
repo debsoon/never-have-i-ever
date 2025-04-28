@@ -17,7 +17,7 @@ import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
 import ClientPromptPage from './ClientPromptPage'
 import Head from 'next/head'
 
-// 👇 generateMetadata: no changes needed here for now
+// 👇 generateMetadata: OpenGraph for general link previews (Twitter, Discord, etc.)
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`, { cache: 'no-store' }).then(res => res.json())
 
@@ -27,9 +27,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     openGraph: {
       title: `Never Have I Ever: ${prompt.content}`,
       description: `Join ${prompt.totalConfessions} others in confessing.`,
-      images: [`https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
+      images: [
+        `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
+      ],
     },
-    // NOTE: We'll handle fc:frame manually instead of relying on "other"
   }
 }
 
@@ -46,11 +47,11 @@ interface RedisPrompt {
 function formatTimeRemaining(expiresAt: number): string {
   const now = Date.now()
   const timeRemaining = Math.max(0, expiresAt - now)
-  
+
   const hours = Math.floor(timeRemaining / (1000 * 60 * 60))
   const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
   const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000)
-  
+
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 }
 
@@ -67,7 +68,7 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
     }
     const data = await res.json()
     console.log('Raw prompt data from Redis:', data)
-    
+
     return {
       id: data.id,
       content: data.content,
@@ -85,7 +86,6 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
 
 // 👇 Server Component
 export default async function PromptPage({ params }: { params: { id: string } }) {
-  // Fetch prompt data on the server
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://debbiedoes.fun'}/api/prompts/${params.id}`, {
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
@@ -96,14 +96,20 @@ export default async function PromptPage({ params }: { params: { id: string } })
     return <div>Prompt not found</div>
   }
 
-  // 👇 Manually inject <meta name="fc:frame"> here
+  // 🛠️ Correct Miniapp vNext Frame Meta:
   const frameMetaContent = JSON.stringify({
-    version: "vNext",
-    image: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
-    post_url: `https://debbiedoes.fun/prompts/${prompt.id}`, // <-- CORRECTED to direct page link
-    buttons: [{ label: "🤫 Start Confessing" }]
-  }).replace(/"/g, '&quot;')
-  
+    version: "next", // <-- notice: "next", not "vNext"
+    imageUrl: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
+    button: {
+      title: "🤫 Start Confessing",
+      action: {
+        type: "launch_frame",
+        url: `https://debbiedoes.fun/prompts/${prompt.id}`,
+        name: "Never Have I Ever"
+      }
+    }
+  }).replace(/"/g, '&quot;') // escape for HTML
+
   return (
     <>
       <Head>
