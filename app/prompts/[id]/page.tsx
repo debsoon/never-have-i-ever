@@ -15,8 +15,9 @@ import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
 import ClientPromptPage from './ClientPromptPage'
+import Head from 'next/head'
 
-// 👇 NEW: Dynamic generateMetadata function
+// 👇 generateMetadata: no changes needed here for now
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`, { cache: 'no-store' }).then(res => res.json())
 
@@ -28,14 +29,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       description: `Join ${prompt.totalConfessions} others in confessing.`,
       images: [`https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
     },
-    other: {
-      "fc:frame": JSON.stringify({
-        version: "vNext",
-        image: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
-        post_url: `https://debbiedoes.fun/prompts/${params.id}`,
-        buttons: [{ label: "🤫 Start Confessing" }]
-      })
-    }
+    // NOTE: We'll handle fc:frame manually instead of relying on "other"
   }
 }
 
@@ -89,7 +83,7 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
   }
 }
 
-// Server Component
+// 👇 Server Component
 export default async function PromptPage({ params }: { params: { id: string } }) {
   // Fetch prompt data on the server
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://debbiedoes.fun'}/api/prompts/${params.id}`, {
@@ -98,6 +92,24 @@ export default async function PromptPage({ params }: { params: { id: string } })
   })
   const prompt = res.ok ? await res.json() : null
 
-  return <ClientPromptPage prompt={prompt} params={params} />
-} 
+  if (!prompt) {
+    return <div>Prompt not found</div>
+  }
 
+  // 👇 Manually inject <meta name="fc:frame"> here
+  const frameMetaContent = JSON.stringify({
+    version: "vNext",
+    image: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
+    post_url: `https://debbiedoes.fun/prompts/${prompt.id}`, // <-- CORRECTED to direct page link
+    buttons: [{ label: "🤫 Start Confessing" }]
+  }).replace(/"/g, '&quot;')
+  
+  return (
+    <>
+      <Head>
+        <meta name="fc:frame" content={frameMetaContent} />
+      </Head>
+      <ClientPromptPage prompt={prompt} params={params} />
+    </>
+  )
+}
