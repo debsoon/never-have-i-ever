@@ -95,7 +95,41 @@ function ConfirmPromptContent() {
       }
 
       if (receipt.status === 'success') {
-        router.push(`/prompts/${receipt.logs[0].topics[1]}`);
+        const promptId = receipt.logs[0].topics[1];
+        
+        // Create prompt in Redis
+        try {
+          const response = await fetch('/api/prompts/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: promptId,
+              content: prompt,
+              authorFid: miniKitContext?.user?.fid,
+              createdAt: Date.now(),
+              expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours from now
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to create prompt in Redis');
+          }
+
+          // Send notification
+          if (sendNotification && miniKitContext?.user?.fid) {
+            await sendNotification({
+              title: "Your Prompt is Live! 🎉",
+              body: "Share it with your friends to see who's done it.",
+            });
+          }
+
+          // Navigate to the prompt page
+          router.push(`/prompts/${promptId}`);
+        } catch (error) {
+          console.error('Error creating prompt in Redis:', error);
+        }
       }
     } catch (error) {
       console.error('Error processing transaction:', error);
