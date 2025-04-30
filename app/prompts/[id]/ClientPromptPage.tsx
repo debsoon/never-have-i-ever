@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
+import { useAccount } from 'wagmi'
 
 interface RedisPrompt {
   id: string
@@ -28,6 +29,7 @@ interface RedisPrompt {
 export default function ClientPromptPage({ prompt, params }: { prompt: RedisPrompt | null, params: { id: string } }) {
   const router = useRouter()
   const { context } = useMiniKit()
+  const { address } = useAccount()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confessionType, setConfessionType] = useState<'have' | 'never'>('have')
   const [timeRemaining, setTimeRemaining] = useState('')
@@ -153,35 +155,62 @@ export default function ClientPromptPage({ prompt, params }: { prompt: RedisProm
             </div>
 
             {!isExpired && !hasConfessed && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setConfessionType('have')
-                    setIsModalOpen(true)
-                  }}
-                  className={cn(
-                    "bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full",
-                    "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
-                    "border-2 border-[#B02A15]",
-                    txcPearl.className
-                  )}
-                >
-                  I HAVE
-                </button>
-                <button
-                  onClick={() => {
-                    setConfessionType('never')
-                    setIsModalOpen(true)
-                  }}
-                  className={cn(
-                    "bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full",
-                    "text-[28px] whitespace-nowrap hover:bg-[#FCD9A8] transition-colors",
-                    "border-2 border-[#B02A15]",
-                    txcPearl.className
-                  )}
-                >
-                  I HAVE NEVER
-                </button>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setConfessionType('have')
+                      setIsModalOpen(true)
+                    }}
+                    className={cn(
+                      "bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full",
+                      "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
+                      "border-2 border-[#B02A15]",
+                      txcPearl.className
+                    )}
+                  >
+                    I HAVE
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConfessionType('never')
+                      setIsModalOpen(true)
+                    }}
+                    className={cn(
+                      "bg-[#B02A15] text-[#FCD9A8] px-4 py-1.5 rounded-full",
+                      "text-[28px] whitespace-nowrap hover:bg-[#8f2211] transition-colors",
+                      "border-2 border-[#B02A15]",
+                      txcPearl.className
+                    )}
+                  >
+                    I HAVE NEVER
+                  </button>
+                </div>
+
+                <div className="mt-4">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { sdk } = await import('@farcaster/frame-sdk')
+                        const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+                        await sdk.actions.composeCast({ 
+                          text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
+                          embeds: [promptUrl]
+                        })
+                      } catch (error) {
+                        console.error('Error sharing to Farcaster:', error)
+                      }
+                    }}
+                    className={cn(
+                      "inline-flex items-center justify-center whitespace-nowrap bg-transparent text-[#B02A15] px-6 py-2 rounded-full",
+                      "text-3xl hover:bg-[#FCD9A8] transition-colors",
+                      "border-2 border-[#B02A15]",
+                      txcPearl.className
+                    )}
+                  >
+                    GET OTHERS TO CONFESS
+                  </button>
+                </div>
               </div>
             )}
           </div>

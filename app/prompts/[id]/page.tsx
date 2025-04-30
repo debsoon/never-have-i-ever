@@ -21,16 +21,30 @@ import Head from 'next/head'
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`, { cache: 'no-store' }).then(res => res.json())
 
+  const frameMetaContent = {
+    version: "next",
+    imageUrl: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
+    button: {
+      title: "🤫 Start Confessing",
+      action: {
+        type: "launch_frame",
+        url: `https://debbiedoes.fun/prompts/${params.id}`,
+        name: "Never Have I Ever"
+      }
+    }
+  }
+
   return {
     title: `Never Have I Ever: ${prompt.content}`,
     description: `Join ${prompt.totalConfessions} others in confessing.`,
     openGraph: {
       title: `Never Have I Ever: ${prompt.content}`,
       description: `Join ${prompt.totalConfessions} others in confessing.`,
-      images: [
-        `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`
-      ],
+      images: [`https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
     },
+    other: {
+      'fc:frame': JSON.stringify(frameMetaContent).replace(/"/g, '&quot;')
+    }
   }
 }
 
@@ -96,26 +110,5 @@ export default async function PromptPage({ params }: { params: { id: string } })
     return <div>Prompt not found</div>
   }
 
-  // 🛠️ Correct Miniapp vNext Frame Meta:
-  const frameMetaContent = JSON.stringify({
-    version: "next", // <-- notice: "next", not "vNext"
-    imageUrl: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
-    button: {
-      title: "🤫 Start Confessing",
-      action: {
-        type: "launch_frame",
-        url: `https://debbiedoes.fun/prompts/${prompt.id}`,
-        name: "Never Have I Ever"
-      }
-    }
-  }).replace(/"/g, '&quot;') // escape for HTML
-
-  return (
-    <>
-      <Head>
-        <meta name="fc:frame" content={frameMetaContent} />
-      </Head>
-      <ClientPromptPage prompt={prompt} params={params} />
-    </>
-  )
+  return <ClientPromptPage prompt={prompt} params={params} />
 }
