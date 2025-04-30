@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
 
     // Load fonts from public URLs
     const [txcPearl, neuzeitRegular, neuzeitBold] = await Promise.all([
-      fetch('https://debbiedoes.fun/fonts/TXCPearl-Regular.ttf').then(res => res.arrayBuffer()),
-      fetch('https://debbiedoes.fun/fonts/Neuzeit-Grotesk-Regular.ttf').then(res => res.arrayBuffer()),
-      fetch('https://debbiedoes.fun/fonts/Neuzeit-Grotesk-Bold.ttf').then(res => res.arrayBuffer()),
+      fetch('https://www.debbiedoes.fun/fonts/TXCPearl-Regular.ttf').then(res => res.arrayBuffer()),
+      fetch('https://www.debbiedoes.fun/fonts/Neuzeit-Grotesk-Regular.ttf').then(res => res.arrayBuffer()),
+      fetch('https://www.debbiedoes.fun/fonts/Neuzeit-Grotesk-Bold.ttf').then(res => res.arrayBuffer()),
     ])
 
     return new ImageResponse(

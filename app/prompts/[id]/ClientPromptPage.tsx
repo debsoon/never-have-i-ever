@@ -192,7 +192,7 @@ export default function ClientPromptPage({ prompt, params }: { prompt: RedisProm
                     onClick={async () => {
                       try {
                         const { sdk } = await import('@farcaster/frame-sdk')
-                        const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+                        const promptUrl = `https://www.debbiedoes.fun/prompts/${params.id}`
                         await sdk.actions.composeCast({ 
                           text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
                           embeds: [promptUrl]
