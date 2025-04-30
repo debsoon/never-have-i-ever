@@ -58,6 +58,7 @@ interface StorageInterface {
   hasUserPaid(promptId: string, userFid: number): Promise<boolean>
   setImageUrl(promptId: string, userFid: number, imageUrl: string): Promise<void>
   getImageUrl(promptId: string, userFid: number): Promise<string | null>
+  getAllPrompts(): Promise<StoredPrompt[]>
 }
 
 // Development mode storage helper
@@ -167,6 +168,20 @@ class LocalStorageHelper implements StorageInterface {
 
   async getImageUrl(promptId: string, userFid: number): Promise<string | null> {
     return this.getItem<string>(KEYS.IMAGE(promptId, userFid))
+  }
+
+  async getAllPrompts(): Promise<StoredPrompt[]> {
+    const prompts: StoredPrompt[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('prompt:')) {
+        const prompt = await this.getPrompt(key.replace('prompt:', ''))
+        if (prompt) {
+          prompts.push(prompt)
+        }
+      }
+    }
+    return prompts
   }
 }
 
@@ -357,6 +372,26 @@ class RedisStorageAdapter implements StorageInterface {
   async getImageUrl(promptId: string, userFid: number): Promise<string | null> {
     return this.redis.get(KEYS.IMAGE(promptId, userFid))
   }
+
+  async getAllPrompts(): Promise<StoredPrompt[]> {
+    console.log('Redis: Fetching all prompts')
+    const prompts: StoredPrompt[] = []
+    
+    // Get all prompt keys
+    const promptKeys = await this.redis.keys('prompt:*')
+    console.log('Redis: Found prompt keys:', promptKeys)
+    
+    // Fetch each prompt
+    for (const key of promptKeys) {
+      console.log('Redis: Fetching prompt with key:', key)
+      const prompt = await this.redis.get<StoredPrompt>(key)
+      console.log('Redis: Found prompt:', prompt)
+      if (prompt) prompts.push(prompt)
+    }
+    
+    console.log('Redis: Total prompts found:', prompts.length)
+    return prompts
+  }
 }
 
 // Helper functions for data operations
@@ -425,6 +460,10 @@ export class RedisHelperClass {
 
   async getImageUrl(promptId: string, userFid: number): Promise<string | null> {
     return this.storage.getImageUrl(promptId, userFid)
+  }
+
+  async getAllPrompts(): Promise<StoredPrompt[]> {
+    return this.storage.getAllPrompts()
   }
 }
 
