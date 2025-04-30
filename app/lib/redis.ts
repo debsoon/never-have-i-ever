@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
 // Key prefixes for different data types
-const KEYS = {
+export const KEYS = {
   PROMPT: (id: string) => `prompt:${id}`,
   PROMPT_LIST: 'prompts:list',
   CONFESSION: (promptId: string, userFid: number) => `confession:${promptId}:${userFid}`,

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "NODE_PATH=. ts-node -P scripts/tsconfig.json scripts/seed-test-data.ts"
+    "seed": "NODE_PATH=. ts-node -P scripts/tsconfig.json scripts/seed-test-data.ts",
+    "cleanup-redis": "NODE_PATH=. ts-node -P scripts/tsconfig.json scripts/cleanup-redis.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.7",
