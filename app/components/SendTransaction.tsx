@@ -139,7 +139,7 @@ export function SendTransaction({
         {isPending ? 'Confirming...' :
          isConfirming ? 'Processing...' :
          !priceInWei ? 'Loading...' :
-         'Submitting...'}
+         'Please wait...'}
       </button>
 
       {!hideDebug && error && (

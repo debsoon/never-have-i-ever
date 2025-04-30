@@ -93,10 +93,23 @@ function ConfirmPromptContent() {
       setIsProcessing(true)
       setDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
       
-      const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+      // Wait for transaction receipt with retries
+      let receipt = null
+      let attempts = 0
+      const maxAttempts = 5
+      const delay = 2000 // 2 seconds between attempts
+
+      while (!receipt && attempts < maxAttempts) {
+        receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+        if (!receipt) {
+          setDebugMessage(`⏳ Waiting for transaction receipt (attempt ${attempts + 1}/${maxAttempts})...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          attempts++
+        }
+      }
       
       if (!receipt) {
-        setDebugMessage(`❌ No receipt found for ${txHash}. Transaction may still be pending.`)
+        setDebugMessage(`❌ No receipt found for ${txHash} after ${maxAttempts} attempts.`)
         return
       }
 
