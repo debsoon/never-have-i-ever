@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       images: [`https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
     },
     other: {
-      'fc:frame': JSON.stringify(frameMetaContent).replace(/"/g, '&quot;')
+      'fc:frame': JSON.stringify(frameMetaContent)
     }
   }
 }
