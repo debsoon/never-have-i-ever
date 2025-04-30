@@ -82,6 +82,24 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
       
       await addConfession(newConfession);
       
+      // Send notification to prompt creator
+      const prompt = await fetch(`/api/prompts/${promptId}`).then(res => res.json());
+      if (prompt?.authorFid) {
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fid: prompt.authorFid,
+            notification: {
+              title: 'New Confession!',
+              body: `${context.user.username} has responded to Never Have I Ever ${prompt.content}`,
+            },
+          }),
+        });
+      }
+      
       setCaption('');
       setImageUrl('');
       onClose();
@@ -89,7 +107,7 @@ export function ConfessionModal({ isOpen, onClose, type, promptId }: ConfessionM
     } catch (error) {
       console.error('Failed to submit confession:', error);
     }
-  }, [addConfession, type, caption, context?.user?.fid, imageUrl, router, promptId, onClose]);
+  }, [addConfession, type, caption, context?.user?.fid, context?.user?.username, imageUrl, router, promptId, onClose]);
 
   if (!isOpen) return null;
 

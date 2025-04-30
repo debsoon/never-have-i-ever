@@ -88,8 +88,8 @@ export async function POST(request: Request) {
         await setUserNotificationDetails(fid, event.notificationDetails);
         await sendFrameNotification({
           fid,
-          title: `Welcome to ${appName}`,
-          body: `Thank you for adding ${appName}`,
+          title: `Welcome to Never Have I Ever!`,
+          body: `Time to confess your deepest secrets... and get others to share theirs 👀`,
         });
       } else {
         await deleteUserNotificationDetails(fid);
@@ -106,8 +106,8 @@ export async function POST(request: Request) {
       await setUserNotificationDetails(fid, event.notificationDetails);
       await sendFrameNotification({
         fid,
-        title: `Welcome to ${appName}`,
-        body: `Thank you for enabling notifications for ${appName}`,
+        title: `Welcome to Never Have I Ever!`,
+        body: `Time to confess your deepest secrets... and get others to share theirs 👀`,
       });
 
       break;
@@ -116,6 +116,17 @@ export async function POST(request: Request) {
       console.log("notifications_disabled");
       await deleteUserNotificationDetails(fid);
 
+      break;
+    }
+    case "prompt_expiring": {
+      console.log("prompt_expiring", event.notificationDetails);
+      if (event.notificationDetails) {
+        await sendFrameNotification({
+          fid,
+          title: `Your Prompt Expires in 1h!`,
+          body: `Share it now to get more confessions before time runs out ⏳`,
+        });
+      }
       break;
     }
   }

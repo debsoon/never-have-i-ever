@@ -72,176 +72,35 @@ function ConfirmPromptContent() {
     return null
   }
 
-  async function handleSuccess(txHash: `0x${string}`) {
-    // Prevent infinite loops
-    if (retryCount > 2) {
-      setDebugMessage(`❌ Too many retries (${retryCount}). Please refresh and try again.`)
-      setProcessingComplete(true) // Force completion to stop retries
-      return
-    }
-
-    // Check if we've already processed this transaction
-    if (processedTxHashes.has(txHash)) {
-      setDebugMessage(`🔄 Transaction ${txHash} already processed.`)
-      if (promptId) {
-        setProcessingComplete(true)
-      }
-      return
-    }
-
+  const handleSuccess = async (hash: `0x${string}`) => {
     try {
-      setIsProcessing(true)
-      setDebugMessage(`🎬 Starting to process transaction ${txHash}...`)
-      
       // Wait for transaction receipt with retries
-      let receipt = null
-      let attempts = 0
-      const maxAttempts = 5
-      const delay = 2000 // 2 seconds between attempts
-
+      let receipt = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
       while (!receipt && attempts < maxAttempts) {
-        receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+        receipt = await publicClient.getTransactionReceipt({ hash });
         if (!receipt) {
-          setDebugMessage(`⏳ Waiting for transaction receipt (attempt ${attempts + 1}/${maxAttempts})...`)
-          await new Promise(resolve => setTimeout(resolve, delay))
-          attempts++
-        }
-      }
-      
-      if (!receipt) {
-        setDebugMessage(`❌ No receipt found for ${txHash} after ${maxAttempts} attempts.`)
-        return
-      }
-
-      if (receipt.status === 'reverted') {
-        throw new Error('Transaction reverted')
-      }
-
-      const log = receipt.logs.find(
-        (log) =>
-          log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
-          log.topics[0] === '0x43a27e193a8a889a28c3124e317e27c3f75d38fb3d90b02cb7f4473bf098ba9d'
-      )
-
-      if (!log || !log.topics[1]) {
-        throw new Error('PromptCreated event or promptId not found in logs')
-      }
-
-      // Extract promptId
-      const rawHexValue = log.topics[1]
-      const bigIntValue = BigInt(rawHexValue)
-      const extractedPromptId = bigIntValue.toString()
-      
-      // Add validation and debug checks for promptId
-      if (!extractedPromptId || extractedPromptId === '0') {
-        throw new Error('Invalid promptId: value is empty or zero')
-      }
-
-      // Debug check for promptId type and format
-      setDebugMessage(`🔍 PromptId validation:\n- Type: ${typeof extractedPromptId}\n- Value: ${extractedPromptId}\n- Length: ${extractedPromptId.length}\n- Is valid number: ${!isNaN(Number(extractedPromptId))}`)
-
-      // Additional validation
-      if (isNaN(Number(extractedPromptId))) {
-        throw new Error('Invalid promptId: not a valid number')
-      }
-
-      setPromptId(extractedPromptId)
-      setDebugMessage(`✅ Prompt ID extracted: ${extractedPromptId}`)
-      
-      // Mark transaction as processed
-      setProcessedTxHashes(prev => new Set(prev).add(txHash))
-
-      // Get FID from MiniKit context
-      const authorFid = miniKitContext?.user?.fid
-      if (!authorFid) {
-        throw new Error('FID not found in MiniKit context')
-      }
-
-      setDebugMessage(`✅ FID retrieved from MiniKit context: ${authorFid}`)
-
-      try {
-        // Prepare and validate Redis data
-        const redisData = {
-          id: extractedPromptId,
-          content: prompt as string,
-          authorFid,
-          createdAt: Date.now(),
-          expiresAt: Date.now() + 86400 * 1000,
-        }
-
-        setDebugMessage(`🚀 Attempting to create prompt via API with data:\n${JSON.stringify(redisData, null, 2)}`)
-        
-        // Use API route instead of direct Redis access
-        const response = await fetch('/api/prompts/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(redisData),
-        })
-
-        const responseData = await response.json()
-        
-        if (!response.ok) {
-          setDebugMessage(`❌ API Error: ${responseData.error}\nStack: ${responseData.stack || 'No stack trace'}`)
-          throw new Error(`API Error: ${responseData.error}`)
-        }
-
-        setDebugMessage(`📝 API createPrompt result: ${JSON.stringify(responseData.result, null, 2)}`)
-
-        // Verify the write immediately
-        try {
-          const verifyResponse = await fetch(`/api/redis/get-prompt?id=${redisData.id}`)
-          const verifyData = await verifyResponse.json()
-          
-          if (!verifyResponse.ok) {
-            setDebugMessage(`❌ Verification failed: ${verifyData.error}`)
-            throw new Error('Verification failed - prompt not found after write')
+          attempts++;
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
           }
-          
-          setDebugMessage(`✅ Redis write verified! Stored data:\n${JSON.stringify(verifyData.result, null, 2)}`)
-        } catch (verifyError) {
-          const verifyErrorDetails = verifyError instanceof Error
-            ? `${verifyError.message}\n${verifyError.stack}`
-            : JSON.stringify(verifyError)
-          throw new Error(`Write verification failed:\n${verifyErrorDetails}`)
         }
-
-        await sendNotification({
-          title: 'Prompt Submitted!',
-          body: `Your "Never Have I Ever" prompt has been posted.`,
-        })
-
-        setProcessingComplete(true)
-      } catch (redisError) {
-        const errorDetails = redisError instanceof Error
-          ? `${redisError.message}\n${redisError.stack}`
-          : JSON.stringify(redisError)
-        setDebugMessage(`❌ Redis Operation Failed:\nError Details: ${errorDetails}\nPrompt ID: ${extractedPromptId}`)
-        console.error('Redis Error:', redisError)
-        throw redisError // Re-throw to be caught by outer catch
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setDebugMessage(`❌ Error: ${errorMessage}`)
-      console.error('Error in handleSuccess:', err)
-      
-      // Increment retry counter
-      setRetryCount(prev => prev + 1)
-      
-      // Only set processing complete if we have a promptId
-      if (promptId) {
-        setProcessingComplete(true)
+
+      if (!receipt) {
+        console.error('Failed to get transaction receipt after multiple attempts');
+        return;
       }
-      
-      await sendNotification({
-        title: 'Error',
-        body: 'Failed to process prompt. Please try again.',
-      })
-    } finally {
-      setIsProcessing(false)
+
+      if (receipt.status === 'success') {
+        router.push(`/prompts/${receipt.logs[0].topics[1]}`);
+      }
+    } catch (error) {
+      console.error('Error processing transaction:', error);
     }
-  }
+  };
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-start pt-16 bg-cover bg-center bg-no-repeat ${txcPearl.className} border-viewport border-[#B02A15]`} style={{ backgroundImage: 'url("/images/background.png")' }}>
