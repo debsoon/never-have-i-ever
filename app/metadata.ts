@@ -1,35 +1,61 @@
 import type { Metadata, Viewport } from 'next'
 
-// Define the frame metadata
-const frameMetadata = {
-  version: "next",
-  imageUrl: "https://debbiedoes.fun/images/splash/framecover.png", // We'll create this API route later
-  button: {
-    title: "🤫 Start Confessing",
-    action: {
-      type: "launch_frame",
-      url: "https://debbiedoes.fun",
-      name: "Debbie Does",
-      splashImageUrl: "https://debbiedoes.fun/images/splash/framecover.png",
-      splashBackgroundColor: "#EBCB9A"
-    }
-  }
-}
-
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
 }
 
 export const metadata: Metadata = {
-  title: 'Debbie Does Never Have I Ever',
-  description: 'A onchain game of confessions and revelations',
+  title: `Debbie Does Never Have I Ever`,
+  description: `A onchain game of confessions and revelations`,
   openGraph: {
-    title: 'Debbie Does Never Have I Ever',
-    description: 'A onchain game of confessions and revelations',
-    images: ['/images/splash/framecover.png'],
+    title: `Debbie Does Never Have I Ever`,
+    description: `A onchain game of confessions and revelations`,
+    images: [`https://debbiedoes.fun/images/splash/framecover.png`],
   },
+  
+}
+
+interface FrameContent {
+  version: string;
+  imageUrl: string;
+  button: {
+    title: string;
+    action: {
+      type: string;
+      url: string;
+      name: string;
+    };
+  };
   other: {
-    'fc:frame': JSON.stringify(frameMetadata),
-  },
-} 
+    'fc:frame': string;
+  };
+}
+
+const frameContent: FrameContent = {
+  version: "next",
+  imageUrl: `https://debbiedoes.fun/images/splash/framecover.png`,
+  button: {
+      title: "🤫 Start Confessing",
+      action: {
+        type: "launch_frame",
+        url: `https://debbiedoes.fun`,
+        name: "Never Have I Ever"
+      }
+    },
+    other: {
+      'fc:frame': JSON.stringify({
+        version: "next",
+        imageUrl: `https://debbiedoes.fun/images/splash/framecover.png`,
+        button: {
+          title: "🤫 Start Confessing",
+          action: {
+            type: "launch_frame",
+            url: `https://debbiedoes.fun`,
+            name: "Never Have I Ever"
+          }
+        }
+      })
+    }
+}
+

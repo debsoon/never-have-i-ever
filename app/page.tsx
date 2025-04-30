@@ -1,68 +1,30 @@
-"use client";
+import { Metadata } from 'next'
+import HomePage from './HomePage'
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
-import {
-  useMiniKit,
-  useAddFrame,
-} from "@coinbase/onchainkit/minikit";
-import { useEffect } from "react";
+export const metadata: Metadata = {
+  title: 'Debbie Does Never Have I Ever',
+  description: 'A onchain game of confessions and revelations',
+  openGraph: {
+    title: 'Debbie Does Never Have I Ever',
+    description: 'A onchain game of confessions and revelations',
+    images: ['/images/splash/framecover.png'],
+  },
+  other: {
+    'fc:frame': JSON.stringify({
+      version: "next",
+      imageUrl: "https://debbiedoes.fun/images/splash/framecover.png",
+      button: {
+        title: "🤫 Start Confessing",
+        action: {
+          type: "launch_frame",
+          url: "https://debbiedoes.fun",
+          name: "Never Have I Ever"
+        }
+      }
+    })
+  }
+}
 
-export default function App() {
-  // Required MiniKit setup
-  const { setFrameReady, isFrameReady } = useMiniKit();
-  const addFrame = useAddFrame();
-
-  useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
-    } else {
-      // Trigger frame prompt once the frame is ready
-      addFrame().catch(error => {
-        console.error('Failed to add frame:', error);
-      });
-    }
-  }, [setFrameReady, isFrameReady, addFrame]);
-
-  return (
-    <main 
-      className={`flex min-h-screen flex-col items-center justify-center 
-                  bg-cover bg-center bg-no-repeat ${txcPearl.className}`}
-      style={{ backgroundImage: 'url("/images/background.png")' }}
-    >
-      <div className="relative w-full max-w-[600px] flex flex-col items-center">
-        {/* Header Text Image */}
-        <Image
-          src="/images/splash/header.png"
-          alt="Debbie Does Never Have I Ever"
-          width={500}
-          height={200}
-          className="w-full max-w-[500px] mb-2"
-          priority
-        />
-
-        {/* Start Confessing Button */}
-        <Link href="/instructions">
-          <button
-            className="px-8 py-3 bg-[#B02A15] text-[#FCD9A8] rounded-full 
-                     text-4xl hover:bg-[#8f2211] transition-colors
-                     uppercase tracking-wider z-10"
-          >
-            Start Confessing
-          </button>
-        </Link>
-
-        {/* Bottom Image - Woman on Cup */}
-        <Image
-          src="/images/splash/woman-on-cup.png"
-          alt="Vintage style illustration"
-          width={600}
-          height={800}
-          className="w-full max-w-[600px] mt-2"
-          priority
-        />
-      </div>
-    </main>
-  );
+export default function Page() {
+  return <HomePage />
 }
