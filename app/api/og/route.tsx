@@ -3,9 +3,19 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
-// Set cache control headers
-export const headers = {
+// Add headers to the ImageResponse
+const headers = {
   'Cache-Control': 'public, max-age=900, s-maxage=900, stale-while-revalidate=300',
+}
+
+// Override the ImageResponse constructor to include headers
+const CustomImageResponse = class extends ImageResponse {
+  constructor(...args: ConstructorParameters<typeof ImageResponse>) {
+    super(...args)
+    Object.entries(headers).forEach(([key, value]) => {
+      this.headers.set(key, value)
+    })
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -22,7 +32,7 @@ export async function GET(req: NextRequest) {
       fetch('https://debbiedoes.fun/fonts/Neuzeit-Grotesk-Bold.ttf').then(res => res.arrayBuffer()),
     ])
 
-    return new ImageResponse(
+    return new CustomImageResponse(
       (
         <div
           style={{
@@ -143,6 +153,7 @@ export async function GET(req: NextRequest) {
     console.log(`${e instanceof Error ? e.message : 'Unknown error'}`)
     return new Response(`Failed to generate the image: ${e instanceof Error ? e.message : 'Unknown error'}`, {
       status: 500,
+      headers,
     })
   }
 } 
