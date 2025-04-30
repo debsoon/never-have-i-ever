@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   other: {
     'fc:frame': JSON.stringify({
       version: "next",
-      imageUrl: "https://debbiedoes.fun/images/splash/framecover.png",
+      imageUrl: "https://debbiedoes.fun/images/framecover.png",
       button: {
         title: "🤫 Start Confessing",
         action: {
