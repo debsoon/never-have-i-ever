@@ -95,7 +95,10 @@ function ConfirmPromptContent() {
       }
 
       if (receipt.status === 'success') {
-        const promptId = receipt.logs[0].topics[1];
+        // Convert hex promptId to decimal
+        const hexPromptId = receipt.logs[0].topics[1];
+        if (!hexPromptId) throw new Error('No promptId found in transaction logs');
+        const decimalPromptId = BigInt(hexPromptId).toString();
         
         // Create prompt in Redis
         try {
@@ -105,7 +108,7 @@ function ConfirmPromptContent() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              id: promptId,
+              id: decimalPromptId,
               content: prompt,
               authorFid: miniKitContext?.user?.fid,
               createdAt: Date.now(),
@@ -126,7 +129,7 @@ function ConfirmPromptContent() {
           }
 
           // Navigate to the prompt page
-          router.push(`/prompts/${promptId}`);
+          router.push(`/prompts/${decimalPromptId}`);
         } catch (error) {
           console.error('Error creating prompt in Redis:', error);
         }

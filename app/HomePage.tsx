@@ -7,23 +7,32 @@ import {
   useMiniKit,
   useAddFrame,
 } from "@coinbase/onchainkit/minikit";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function HomePage() {
   // Required MiniKit setup
   const { setFrameReady, isFrameReady } = useMiniKit();
   const addFrame = useAddFrame();
+  const [hasAttemptedFrameAdd, setHasAttemptedFrameAdd] = useState(false);
 
   useEffect(() => {
     if (!isFrameReady) {
       setFrameReady();
-    } else {
-      // Trigger frame prompt once the frame is ready
-      addFrame().catch(error => {
-        console.error('Failed to add frame:', error);
-      });
+    } else if (!hasAttemptedFrameAdd) {
+      // Add frame when ready and not yet attempted
+      addFrame()
+        .then((result) => {
+          if (result) {
+            console.log('Frame added successfully:', result);
+          }
+          setHasAttemptedFrameAdd(true);
+        })
+        .catch(error => {
+          console.error('Failed to add frame:', error);
+          setHasAttemptedFrameAdd(true);
+        });
     }
-  }, [setFrameReady, isFrameReady, addFrame]);
+  }, [setFrameReady, isFrameReady, addFrame, hasAttemptedFrameAdd]);
 
   return (
     <main 
