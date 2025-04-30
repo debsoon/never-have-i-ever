@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
               style={{
                 fontFamily: 'NeuzeitGroteskRegular',
                 fontWeight: 200,
-                fontSize: 36,
+                fontSize: 48,
                 display: 'flex',
               }}
             >
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
             <div
               style={{
                 fontFamily: 'NeuzeitGroteskRegular',
-                fontSize: 72,
+                fontSize: 84,
                 display: 'flex',
                 textAlign: 'center',
                 maxWidth: '80%',
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
             <div
               style={{
                 fontFamily: 'TXCPearl',
-                fontSize: 96,
+                fontSize: 120,
                 display: 'flex',
               }}
             >
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
             <div
               style={{
                 fontFamily: 'NeuzeitGroteskBold',
-                fontSize: 36,
+                fontSize: 48,
                 display: 'flex',
               }}
             >

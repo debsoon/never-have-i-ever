@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `Debbie Does Never Have I Ever`,
     description: `A onchain game of confessions and revelations`,
-    images: [`https://debbiedoes.fun/images/splash/framecover.png`],
+    images: [`https://debbiedoes.fun/images/framecover.png`],
   },
   
 }
@@ -34,7 +34,7 @@ interface FrameContent {
 
 const frameContent: FrameContent = {
   version: "next",
-  imageUrl: `https://debbiedoes.fun/images/splash/framecover.png`,
+  imageUrl: `https://debbiedoes.fun/images/framecover.png`,
   button: {
       title: "🤫 Start Confessing",
       action: {
@@ -46,7 +46,7 @@ const frameContent: FrameContent = {
     other: {
       'fc:frame': JSON.stringify({
         version: "next",
-        imageUrl: `https://debbiedoes.fun/images/splash/framecover.png`,
+        imageUrl: `https://debbiedoes.fun/images/framecover.png`,
         button: {
           title: "🤫 Start Confessing",
           action: {
