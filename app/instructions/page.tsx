@@ -2,8 +2,18 @@
 
 import { txcPearl, neuzeitGrotesk } from '@/utils/fonts'
 import Link from 'next/link'
+import { useEffect } from 'react'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 
 export default function InstructionsPage() {
+  const { setFrameReady, isFrameReady } = useMiniKit()
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady()
+    }
+  }, [isFrameReady, setFrameReady])
+
   return (
     <main 
       className={`flex min-h-screen flex-col items-center justify-center 

@@ -19,16 +19,16 @@ import Head from 'next/head'
 
 // 👇 generateMetadata: OpenGraph for general link previews (Twitter, Discord, etc.)
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const prompt = await fetch(`https://www.debbiedoes.fun/api/prompts/${params.id}`, { cache: 'no-store' }).then(res => res.json())
+  const prompt = await fetch(`https://debbiedoes.fun/api/prompts/${params.id}`, { cache: 'no-store' }).then(res => res.json())
 
   const frameMetaContent = {
     version: "next",
-    imageUrl: `https://www.debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
+    imageUrl: `https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`,
     button: {
       title: "🤫 Start Confessing",
       action: {
         type: "launch_frame",
-        url: `https://www.debbiedoes.fun/prompts/${params.id}`,
+        url: `https://debbiedoes.fun/prompts/${params.id}`,
         name: "Never Have I Ever"
       }
     }
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     openGraph: {
       title: `Never Have I Ever: ${prompt.content}`,
       description: `Join ${prompt.totalConfessions} others in confessing.`,
-      images: [`https://www.debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
+      images: [`https://debbiedoes.fun/api/og?author=${prompt.author?.username || 'anonymous'}&content=${encodeURIComponent(prompt.content)}&confessions=${prompt.totalConfessions}`],
     },
     other: {
       'fc:frame': JSON.stringify(frameMetaContent)
@@ -100,7 +100,7 @@ async function loadPrompt(id: string): Promise<RedisPrompt | null> {
 
 // 👇 Server Component
 export default async function PromptPage({ params }: { params: { id: string } }) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.debbiedoes.fun'}/api/prompts/${params.id}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://debbiedoes.fun'}/api/prompts/${params.id}`, {
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
   })

@@ -28,7 +28,7 @@ interface RedisPrompt {
 
 export default function ClientPromptPage({ prompt, params }: { prompt: RedisPrompt | null, params: { id: string } }) {
   const router = useRouter()
-  const { context } = useMiniKit()
+  const { context, setFrameReady, isFrameReady } = useMiniKit()
   const { address } = useAccount()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confessionType, setConfessionType] = useState<'have' | 'never'>('have')
@@ -39,6 +39,12 @@ export default function ClientPromptPage({ prompt, params }: { prompt: RedisProm
   const hasConfessed = prompt?.confessions?.some(
     (confession: any) => confession.userFid === context?.user?.fid
   ) || false
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady()
+    }
+  }, [isFrameReady, setFrameReady])
 
   useEffect(() => {
     if (!prompt) return
@@ -192,7 +198,7 @@ export default function ClientPromptPage({ prompt, params }: { prompt: RedisProm
                     onClick={async () => {
                       try {
                         const { sdk } = await import('@farcaster/frame-sdk')
-                        const promptUrl = `https://www.debbiedoes.fun/prompts/${params.id}`
+                        const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
                         await sdk.actions.composeCast({ 
                           text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
                           embeds: [promptUrl]

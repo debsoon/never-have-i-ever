@@ -15,6 +15,7 @@ import { LoadingState } from '@/app/components/LoadingState'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
 import { useRouter } from 'next/navigation'
 import { FarcasterUserMention } from '@/app/components/FarcasterUserMention'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 
 interface PromptAuthor {
   username: string
@@ -304,6 +305,13 @@ export default function PromptsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all')
   const [userData, setUserData] = useState<Record<number, FarcasterUser>>({})
   const { user } = useUser()
+  const { setFrameReady, isFrameReady } = useMiniKit()
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady()
+    }
+  }, [isFrameReady, setFrameReady])
 
   useEffect(() => {
     loadPrompts(user?.fid).then(async (loadedPrompts) => {

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useAccount } from 'wagmi'
 import { LoadingState } from '@/app/components/LoadingState'
 import { PayToRevealTransaction } from '@/app/components/PayToRevealTransaction'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 
 interface PromptData {
   expiresAt: number
@@ -19,6 +20,13 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<PromptData | null>(null)
   const [timeRemaining, setTimeRemaining] = useState('')
   const { address } = useAccount()
+  const { setFrameReady, isFrameReady } = useMiniKit()
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady()
+    }
+  }, [isFrameReady, setFrameReady])
 
   useEffect(() => {
     fetch(`/api/prompts/${params.id}`)

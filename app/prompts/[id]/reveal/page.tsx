@@ -110,7 +110,13 @@ export default function RevealPage({ params }: { params: { id: string } }) {
   } | null>(null)
 
   const { address } = useAccount()
-  const { context: miniKitContext } = useMiniKit()
+  const { context: miniKitContext, setFrameReady, isFrameReady } = useMiniKit()
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady()
+    }
+  }, [isFrameReady, setFrameReady])
 
   // Check payment status
   useEffect(() => {

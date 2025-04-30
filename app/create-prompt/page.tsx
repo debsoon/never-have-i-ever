@@ -3,14 +3,22 @@
 import { txcPearl, neuzeitGrotesk } from '../../utils/fonts'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useMiniKit } from '@coinbase/onchainkit/minikit'
 
 export default function CreatePromptPage() {
   const [prompt, setPrompt] = useState('')
   const router = useRouter()
   const characterLimit = 100
+  const { setFrameReady, isFrameReady } = useMiniKit()
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady()
+    }
+  }, [isFrameReady, setFrameReady])
 
   const handleSubmit = () => {
     if (prompt.trim()) {
