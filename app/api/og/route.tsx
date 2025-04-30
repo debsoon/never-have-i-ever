@@ -3,6 +3,11 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
+// Set cache control headers
+export const headers = {
+  'Cache-Control': 'public, max-age=900, s-maxage=900, stale-while-revalidate=300',
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
