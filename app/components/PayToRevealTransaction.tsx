@@ -46,7 +46,6 @@ export function PayToRevealTransaction({
   const { connect, connectors } = useConnect()
   const [priceInWei, setPriceInWei] = useState<bigint | null>(null)
   const { context: miniKitContext } = useMiniKit()
-  const [debugMessage, setDebugMessage] = useState<string | null>(null)
   
   const {
     data: hash,
@@ -63,17 +62,14 @@ export function PayToRevealTransaction({
   useEffect(() => {
     async function fetchPrice() {
       try {
-        setDebugMessage("📦 Fetching price from contract...")
         const price = await publicClient.readContract({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: CONTRACT_ABI,
           functionName: 'getPriceInEth',
         })
         setPriceInWei(price as bigint)
-        setDebugMessage("✅ Price fetched successfully")
       } catch (err) {
         console.error('Error fetching price:', err)
-        setDebugMessage(`❌ Error fetching price: ${err instanceof Error ? err.message : 'Unknown error'}`)
       }
     }
     fetchPrice()
@@ -82,25 +78,19 @@ export function PayToRevealTransaction({
   // Function to prepare and send transaction
   async function prepareAndSendTransaction() {
     if (!isConnected) {
-      setDebugMessage("🔌 Connecting wallet...")
       connect({ connector: connectors[0] })
       return
     }
 
-    if (!priceInWei) {
-      setDebugMessage("❌ Price not loaded yet")
-      return
-    }
+    if (!priceInWei) return
 
     try {
-      setDebugMessage("📦 Preparing transaction...")
       const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'payToReveal',
         args: [BigInt(promptId)]
       })
 
-      setDebugMessage("📤 Sending transaction...")
       sendTransaction({
         to: CONTRACT_ADDRESS as `0x${string}`,
         data,
@@ -108,14 +98,12 @@ export function PayToRevealTransaction({
       })
     } catch (err) {
       console.error('Error:', err)
-      setDebugMessage(`❌ Transaction error: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
   // Auto-submit when component mounts if autoSubmit is true
   useEffect(() => {
     if (autoSubmit && !hash && !isPending && !error && priceInWei) {
-      setDebugMessage("🔄 Auto-submitting transaction...")
       prepareAndSendTransaction()
     }
   }, [isConnected, autoSubmit, hash, isPending, error, priceInWei])
@@ -123,24 +111,15 @@ export function PayToRevealTransaction({
   // Form submit handler for manual submission
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setDebugMessage("🔄 Manual transaction submission...")
     await prepareAndSendTransaction()
   }
 
   // Call onSuccess and record payment when transaction is confirmed
   useEffect(() => {
     async function handleConfirmed() {
-      if (!isConfirmed || !hash || !address || !miniKitContext?.user?.fid) {
-        if (!isConfirmed) setDebugMessage("⏳ Waiting for transaction confirmation...")
-        if (!hash) setDebugMessage("❌ No transaction hash available")
-        if (!address) setDebugMessage("❌ No wallet address available")
-        if (!miniKitContext?.user?.fid) setDebugMessage("❌ No user FID available")
-        return
-      }
+      if (!isConfirmed || !hash || !address || !miniKitContext?.user?.fid) return
 
-      let responseData;
       try {
-        setDebugMessage("📦 Transaction confirmed, preparing payment API request...")
         // Record payment in Redis
         const response = await fetch(`/api/prompts/${promptId}/payments`, {
           method: 'POST',
@@ -152,26 +131,33 @@ export function PayToRevealTransaction({
           })
         })
 
-        responseData = await response.json()
-        
         if (!response.ok) {
-          throw new Error(responseData.error || 'Failed to record payment')
+          throw new Error('Failed to record payment')
         }
 
-        setDebugMessage(`✅ Payment API Response:\n${JSON.stringify(responseData.debugLog, null, 2)}`)
+        // Send notification to prompt creator
+        const promptResponse = await fetch(`/api/prompts/${promptId}`)
+        if (promptResponse.ok) {
+          const prompt = await promptResponse.json()
+          await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fid: prompt.authorFid,
+              notification: {
+                title: "You've Been Paid! 🤑",
+                body: "Someone just paid to reveal the confessions to your Never Have I Ever prompt."
+              }
+            })
+          })
+        }
 
         // Call onSuccess callback
         if (onSuccess) {
-          setDebugMessage("🔄 Calling onSuccess callback...")
           onSuccess(hash)
         }
       } catch (err) {
         console.error('Error recording payment:', err)
-        setDebugMessage(`❌ Payment API Error:\n${responseData?.error || 'Unknown'}\n\nStack:\n${responseData?.stack || 'No stack trace'}\n\nSubmitted:\n${JSON.stringify(responseData?.input || {
-          walletAddress: address,
-          userFid: miniKitContext?.user?.fid,
-          txHash: hash
-        }, null, 2)}`)
       }
     }
 
