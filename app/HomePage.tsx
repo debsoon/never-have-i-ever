@@ -11,15 +11,15 @@ import { useEffect, useState } from "react";
 
 export default function HomePage() {
   // Required MiniKit setup
-  const { setFrameReady, isFrameReady } = useMiniKit();
+  const { setFrameReady, isFrameReady, context } = useMiniKit();
   const addFrame = useAddFrame();
   const [hasAttemptedFrameAdd, setHasAttemptedFrameAdd] = useState(false);
 
   useEffect(() => {
     if (!isFrameReady) {
       setFrameReady();
-    } else if (!hasAttemptedFrameAdd) {
-      // Add frame when ready and not yet attempted
+    } else if (!hasAttemptedFrameAdd && !context?.user?.fid) {
+      // Only attempt to add frame if user is not connected
       addFrame()
         .then((result) => {
           if (result) {
@@ -32,7 +32,7 @@ export default function HomePage() {
           setHasAttemptedFrameAdd(true);
         });
     }
-  }, [setFrameReady, isFrameReady, addFrame, hasAttemptedFrameAdd]);
+  }, [setFrameReady, isFrameReady, addFrame, hasAttemptedFrameAdd, context?.user?.fid]);
 
   return (
     <main 

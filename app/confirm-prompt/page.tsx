@@ -122,10 +122,15 @@ function ConfirmPromptContent() {
 
           // Send notification
           if (sendNotification && miniKitContext?.user?.fid) {
-            await sendNotification({
-              title: "Your Prompt is Live! 🎉",
-              body: "Share it with your friends to see who's done it.",
-            });
+            try {
+              const notificationResult = await sendNotification({
+                title: "Your Prompt is Live! 🎉",
+                body: "Share it with your friends to see who's done it.",
+              });
+              console.log('Notification sent successfully:', notificationResult);
+            } catch (error) {
+              console.error('Failed to send notification:', error);
+            }
           }
 
           // Navigate to the prompt page

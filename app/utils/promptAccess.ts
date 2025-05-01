@@ -82,11 +82,11 @@ export function getPromptStatus(prompt: BasePrompt): 'new' | 'expiring' | 'ended
     return 'ended'
   }
 
-  if (timeUntilExpiry <= 6 * 60 * 60 * 1000) { // 6 hours
+  if (timeUntilExpiry <= 2 * 60 * 60 * 1000) { // 2 hours
     return 'expiring'
   }
 
-  if (timeSinceCreation <= 24 * 60 * 60 * 1000) { // 24 hours
+  if (timeSinceCreation <= 2 * 60 * 60 * 1000) { // 2 hours
     return 'new'
   }
 

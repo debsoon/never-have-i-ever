@@ -217,6 +217,15 @@ export default function ClientPromptPage({ prompt, params }: { prompt: RedisProm
                     GET OTHERS TO CONFESS
                   </button>
                 </div>
+                <Link 
+                  href="/prompts" 
+                  className={cn(
+                    "text-[#B02A15] hover:opacity-80 transition-opacity text-xl mt-0 underline",
+                    neuzeitGrotesk.className
+                  )}
+                >
+                  Confess to something else
+                </Link>
               </div>
             )}
           </div>

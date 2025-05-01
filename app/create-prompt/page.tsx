@@ -22,8 +22,10 @@ export default function CreatePromptPage() {
 
   const handleSubmit = () => {
     if (prompt.trim()) {
+      // Remove any leading dashes, spaces, or symbols
+      const cleanedPrompt = prompt.trim().replace(/^[-!@#$%^&*()_+=\[\]{};:'",.<>?\\| ]+/, '')
       // Remove any ending punctuation and ensure it ends with a period
-      const trimmedPrompt = prompt.trim().replace(/[.!?]+$/, '')
+      const trimmedPrompt = cleanedPrompt.replace(/[.!?]+$/, '')
       // Ensure first letter is lowercase
       const lowercasePrompt = trimmedPrompt.charAt(0).toLowerCase() + trimmedPrompt.slice(1)
       const finalPrompt = `${lowercasePrompt}.`
