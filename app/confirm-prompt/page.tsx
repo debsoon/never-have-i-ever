@@ -14,6 +14,8 @@ import { base } from 'wagmi/chains'
 import { useEffect, Suspense, useState } from 'react'
 import { SendTransaction } from '@/app/components/SendTransaction'
 import { publicClient } from '@/app/lib/viemClient'
+import { getUserNotificationDetails } from '@/lib/notification'
+import { sendFrameNotification } from '@/lib/notification-client'
 
 const CONTRACT_ABI = [
   {
@@ -120,7 +122,7 @@ function ConfirmPromptContent() {
             throw new Error('Failed to create prompt in Redis');
           }
 
-          // Send notification
+          // Send notification to creator
           if (sendNotification && miniKitContext?.user?.fid) {
             try {
               const notificationResult = await sendNotification({
@@ -131,6 +133,24 @@ function ConfirmPromptContent() {
             } catch (error) {
               console.error('Failed to send notification:', error);
             }
+          }
+
+          // Send notification to all users who have added the app
+          try {
+            if (miniKitContext?.user?.fid) {
+              const authorUsername = miniKitContext.user.username || `@${miniKitContext.user.fid}`
+              const notificationDetails = await getUserNotificationDetails(miniKitContext.user.fid)
+              if (notificationDetails) {
+                await sendFrameNotification({
+                  fid: miniKitContext.user.fid,
+                  title: `${authorUsername} just created a new prompt! 🔥`,
+                  body: `Confess now to Never Have I Ever ${prompt}`,
+                  notificationDetails
+                })
+              }
+            }
+          } catch (error) {
+            console.error('Failed to send broadcast notification:', error)
           }
 
           // Navigate to the prompt page

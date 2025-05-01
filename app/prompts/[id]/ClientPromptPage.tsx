@@ -199,8 +199,9 @@ export default function ClientPromptPage({ prompt, params }: { prompt: RedisProm
                       try {
                         const { sdk } = await import('@farcaster/frame-sdk')
                         const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+                        const authorUsername = userData[prompt.authorFid]?.username || `@${prompt.authorFid}`
                         await sdk.actions.composeCast({ 
-                          text: `Never have I ever ${prompt.content}.. or have I?\n\nJoin ${prompt.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
+                          text: `Never have I ever ${prompt.content}... or have I?\n\nJoin ${prompt.totalConfessions} others in confessing to ${authorUsername} 👀\n\n${promptUrl}`,
                           embeds: [promptUrl]
                         })
                       } catch (error) {

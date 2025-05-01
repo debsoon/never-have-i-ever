@@ -14,6 +14,10 @@ interface PromptData {
   expiresAt: number
   totalConfessions: number
   content: string
+  authorFid: number
+  author?: {
+    username: string
+  }
 }
 
 export default function SuccessPage({ params }: { params: { id: string } }) {
@@ -35,7 +39,9 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
         setData({
           expiresAt: json.expiresAt,
           totalConfessions: json.totalConfessions,
-          content: json.content
+          content: json.content,
+          authorFid: json.authorFid,
+          author: json.author
         })
       })
       .catch(err => console.error('Failed to load prompt:', err))
@@ -112,8 +118,9 @@ export default function SuccessPage({ params }: { params: { id: string } }) {
                   try {
                     const { sdk } = await import('@farcaster/frame-sdk')
                     const promptUrl = `https://debbiedoes.fun/prompts/${params.id}`
+                    const authorUsername = data.author?.username || `@${data.authorFid}`
                     await sdk.actions.composeCast({ 
-                      text: `Never have I ever ${data.content}.. or have I?\n\nJoin ${data.totalConfessions} others in confessing 👀\n\n${promptUrl}`,
+                      text: `Never have I ever ${data.content}... or have I?\n\nJoin ${data.totalConfessions} others in confessing to ${authorUsername} 👀\n\n${promptUrl}`,
                       embeds: [promptUrl]
                     })
                   } catch (error) {
