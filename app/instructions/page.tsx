@@ -27,11 +27,21 @@ export default function InstructionsPage() {
             HOW IT WORKS
           </h1>
           
+          {/* Free prompts info banner */}
+          <div className="rounded-xl bg-[#FFE8C6] px-6 py-3 mb-6 w-full flex flex-col items-center">
+            <div className={`font-bold text-[#B02A15] text-xl text-center ${neuzeitGrotesk.className}`}>
+              ✧ New users get 5 prompts free! ✧
+            </div>
+            <div className={`text-[#B02A15] text-lg text-center ${neuzeitGrotesk.className}`}>
+              No payment needed to start chaos.
+            </div>
+          </div>
+          
           <ol className={`space-y-6 text-[#B02A15] text-2xl ${neuzeitGrotesk.className} list-none`}>
             <li>
               <p className="flex">
                 <span className="font-bold w-8 shrink-0">1.</span>
-                <span><span className="font-bold">Pay $1 to post a "Never Have I Ever" prompt. </span>
+                <span><span className="font-bold">Pay $1 to post a "Never Have I Ever" prompt (first 5 are on Debbie!). </span>
                 Make it spicy enough to get people talking... and confessing.</span>
               </p>
             </li>
