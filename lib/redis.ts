@@ -13,3 +13,35 @@ export const redis =
         token: process.env.REDIS_TOKEN,
       })
     : null;
+
+export async function getUserPromptCount(address: string): Promise<number> {
+  if (!redis) {
+    console.error('Redis not initialized')
+    return 0
+  }
+
+  try {
+    const count = await redis.get(`user:${address}:promptCount`)
+    if (count === null || typeof count === 'object') {
+      return 0
+    }
+    return parseInt(String(count))
+  } catch (error) {
+    console.error('Error getting user prompt count:', error)
+    return 0
+  }
+}
+
+export async function incrementUserPromptCount(address: string): Promise<void> {
+  if (!redis) {
+    console.error('Redis not initialized')
+    return
+  }
+
+  try {
+    const currentCount = await getUserPromptCount(address)
+    await redis.set(`user:${address}:promptCount`, (currentCount + 1).toString())
+  } catch (error) {
+    console.error('Error incrementing user prompt count:', error)
+  }
+}
