@@ -29,7 +29,7 @@ export default function CreatePromptPage() {
     async function checkFreePromptEligibility() {
       if (!address) return
       const count = await getUserPromptCount(address)
-      setIsFreePrompt(count < 3) // First 3 prompts are free
+      setIsFreePrompt(count < 5) // First 5 prompts are free
     }
     checkFreePromptEligibility()
   }, [address])

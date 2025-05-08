@@ -7,6 +7,7 @@ import { neuzeitGrotesk, txcPearl } from '@/utils/fonts'
 import { useEffect, useState } from 'react'
 import { publicClient } from '@/app/lib/viemClient'
 import { cn } from '@/lib/utils'
+import { getUserPromptCount, incrementUserPromptCount } from '@/lib/redis'
 
 const CONTRACT_ABI = [
   {
@@ -43,9 +44,10 @@ export function SendTransaction({
   prompt,
   hideDebug = false
 }: SendTransactionProps) {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { connect, connectors } = useConnect()
   const [priceInWei, setPriceInWei] = useState<bigint | null>(null)
+  const [isFreePrompt, setIsFreePrompt] = useState<boolean>(false)
   
   const {
     data: hash,
@@ -75,6 +77,16 @@ export function SendTransaction({
     fetchPrice()
   }, [contractAddress])
 
+  // Check if user is eligible for free prompt
+  useEffect(() => {
+    async function checkFreePromptEligibility() {
+      if (!address) return
+      const count = await getUserPromptCount(address)
+      setIsFreePrompt(count < 5) // First 5 prompts are free
+    }
+    checkFreePromptEligibility()
+  }, [address])
+
   // Function to prepare and send transaction
   async function prepareAndSendTransaction() {
     if (!isConnected) {
@@ -94,11 +106,22 @@ export function SendTransaction({
         args: [prompt || '', BigInt(24)] // 24 hours duration
       })
 
-      sendTransaction({
-        to: contractAddress,
-        data,
-        value: priceInWei
-      })
+      if (isFreePrompt && address) {
+        // For free prompts, we still need to send the transaction but with 0 value
+        sendTransaction({
+          to: contractAddress,
+          data,
+          value: BigInt(0)
+        })
+        await incrementUserPromptCount(address)
+      } else {
+        // For paid prompts, send with the required value
+        sendTransaction({
+          to: contractAddress,
+          data,
+          value: priceInWei
+        })
+      }
     } catch (err) {
       console.error('Error:', err)
     }
@@ -139,6 +162,7 @@ export function SendTransaction({
         {isPending ? 'Confirming...' :
          isConfirming ? 'Processing...' :
          !priceInWei ? 'Loading...' :
+         isFreePrompt ? 'Create Free Prompt' :
          'Please wait...'}
       </button>
 
