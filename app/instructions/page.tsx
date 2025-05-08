@@ -21,14 +21,14 @@ export default function InstructionsPage() {
                   border-viewport border-[#B02A15]`}
       style={{ backgroundImage: 'url("/images/background.png")' }}
     >
-      <div className="relative w-full max-w-[600px] flex flex-col items-center px-2">
+      <div className="relative w-full max-w-[700px] flex flex-col items-center px-2">
         <div className="p-8 rounded-lg w-full">
           <h1 className={`text-[#B02A15] text-5xl mb-4 ${txcPearl.className} w-full text-center`}>
             HOW IT WORKS
           </h1>
           
           {/* Free prompts info banner */}
-          <div className="rounded-xl bg-[#FFE8C6] px-6 py-3 mb-6 w-full flex flex-col items-center">
+          <div className="rounded-xl bg-[#FFE8C6] px-1 py-3 mb-6 w-full flex flex-col items-center">
             <div className={`font-bold text-[#B02A15] text-xl text-center ${neuzeitGrotesk.className}`}>
               ✧ New users get 5 prompts free! ✧
             </div>
