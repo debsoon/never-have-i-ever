@@ -7,18 +7,32 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useMiniKit } from '@coinbase/onchainkit/minikit'
+import { useAccount } from 'wagmi'
+import { getUserPromptCount } from '@/lib/redis'
 
 export default function CreatePromptPage() {
   const [prompt, setPrompt] = useState('')
+  const [isFreePrompt, setIsFreePrompt] = useState(false)
   const router = useRouter()
   const characterLimit = 100
   const { setFrameReady, isFrameReady } = useMiniKit()
+  const { address } = useAccount()
 
   useEffect(() => {
     if (!isFrameReady) {
       setFrameReady()
     }
   }, [isFrameReady, setFrameReady])
+
+  // Check if user is eligible for free prompt
+  useEffect(() => {
+    async function checkFreePromptEligibility() {
+      if (!address) return
+      const count = await getUserPromptCount(address)
+      setIsFreePrompt(count < 3) // First 3 prompts are free
+    }
+    checkFreePromptEligibility()
+  }, [address])
 
   const handleSubmit = () => {
     if (prompt.trim()) {
@@ -74,7 +88,7 @@ export default function CreatePromptPage() {
                       text-3xl whitespace-nowrap hover:bg-[#8f2211] transition-colors
                       border-2 border-[#B02A15] uppercase tracking-wider z-10"
           >
-            PAY $1 TO SUBMIT
+            {isFreePrompt ? 'SUBMIT FOR FREE' : 'PAY $1 TO SUBMIT'}
           </button>
 
           <Image
@@ -88,7 +102,7 @@ export default function CreatePromptPage() {
           {/* Back to Instructions Link */}
           <div className="max-w-2xl mx-auto pr-4 mb-12 mt-0">
             <Link 
-              href="/instructions" 
+              href="/prompts" 
               className={cn(
                 "flex items-center gap-2 text-[#B02A15] text-[22px] hover:opacity-80 transition-opacity whitespace-nowrap",
                 neuzeitGrotesk.className
@@ -103,7 +117,7 @@ export default function CreatePromptPage() {
                   filter: 'invert(21%) sepia(75%) saturate(2410%) hue-rotate(351deg) brightness(87%) contrast(92%)'
                 }}
               />
-              <span className="font-bold">RETURN TO INSTRUCTIONS</span>
+              <span className="font-bold">CONFESS TO A PROMPT</span>
             </Link>
           </div>
         </div>

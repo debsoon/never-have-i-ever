@@ -402,6 +402,18 @@ export default function PromptsPage() {
                 I EVER...
               </h1>
 
+              <Link 
+                href="/instructions"
+                className={cn(
+                  "bg-transparent text-[#B02A15] px-4 py-1.5 rounded-full",
+                  "text-3xl whitespace-nowrap hover:bg-[#B02A15] hover:text-[#E8D0B3] transition-colors",
+                  "border-[3px] border-[#B02A15] uppercase tracking-wider mt-4",
+                  txcPearl.className
+                )}
+              >
+                HOW TO PLAY
+              </Link>
+
               <div className="flex items-end my-8 mb-0 relative w-full">
                 {(['all', 'created', 'responded'] as const).map((tab, index) => {
                   const isActive = activeTab === tab;

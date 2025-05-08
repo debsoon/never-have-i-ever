@@ -52,7 +52,7 @@ export default function HomePage() {
         />
 
         {/* Start Confessing Button */}
-        <Link href="/instructions">
+        <Link href="/prompts">
           <button
             className="px-8 py-3 bg-[#B02A15] text-[#FCD9A8] rounded-full 
                      text-4xl hover:bg-[#8f2211] transition-colors
